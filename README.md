@@ -89,13 +89,14 @@ The model predicts user purchase preference based on these features:
    az account set --subscription <your-subscription-id>
    ```
 
-4. Update `config.yaml` with your Azure details:
-   ```yaml
-   azure:
-     subscription_id: "your-subscription-id"
-     resource_group: "your-resource-group"
-     workspace_name: "your-workspace-name"
+4. Update your `.env.local` file with Azure credentials:
+   ```bash
+   AZURE_SUBSCRIPTION_ID=your-actual-subscription-id
+   AZURE_RESOURCE_GROUP=your-actual-resource-group
+   AZURE_WORKSPACE_NAME=your-actual-workspace-name
    ```
+
+   **Note**: The `config.yaml` file references these environment variables using `${VARIABLE_NAME}` syntax, and the `piny` library automatically substitutes them at runtime.
 
 ## Usage
 

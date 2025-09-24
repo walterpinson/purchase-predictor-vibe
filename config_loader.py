@@ -1,67 +1,38 @@
 """
 Configuration loader utility for purchase predictor project.
-Handles loading configuration from config.yaml with environment variable support.
+Handles loading configuration from config.yaml with environment variable support using piny.
 """
 
 import os
-import yaml
 from pathlib import Path
+from piny import YamlLoader
 from dotenv import load_dotenv
 
 
 def load_config(config_file='config.yaml', env_file='.env.local'):
     """
-    Load configuration from YAML file with environment variable support.
+    Load configuration from YAML file with automatic environment variable substitution.
     
     Args:
         config_file (str): Path to the YAML configuration file
         env_file (str): Path to the environment file (optional)
     
     Returns:
-        dict: Configuration dictionary
+        dict: Configuration dictionary with environment variables expanded
     """
     # Load environment variables from .env.local if it exists
     env_path = Path(env_file)
     if env_path.exists():
         load_dotenv(env_path)
     
-    # Load YAML configuration
     try:
-        with open(config_file, 'r') as file:
-            config = yaml.safe_load(file)
+        # Use piny to load YAML with automatic environment variable substitution
+        config = YamlLoader(path=config_file).load()
+        return config
     except FileNotFoundError:
         raise FileNotFoundError(f"{config_file} not found. Please create it with your configuration.")
-    
-    # Replace environment variable placeholders in Azure config
-    if 'azure' in config:
-        azure_config = config['azure']
-        
-        # Replace ${VARIABLE_NAME} patterns with actual environment values
-        if 'subscription_id' in azure_config:
-            subscription_id = azure_config['subscription_id']
-            if subscription_id.startswith('${') and subscription_id.endswith('}'):
-                var_name = subscription_id[2:-1]  # Remove ${ and }
-                azure_config['subscription_id'] = os.getenv(var_name)
-                if not azure_config['subscription_id']:
-                    raise ValueError(f"Environment variable {var_name} not found")
-        
-        if 'resource_group' in azure_config:
-            resource_group = azure_config['resource_group']
-            if resource_group.startswith('${') and resource_group.endswith('}'):
-                var_name = resource_group[2:-1]  # Remove ${ and }
-                azure_config['resource_group'] = os.getenv(var_name)
-                if not azure_config['resource_group']:
-                    raise ValueError(f"Environment variable {var_name} not found")
-        
-        if 'workspace_name' in azure_config:
-            workspace_name = azure_config['workspace_name']
-            if workspace_name.startswith('${') and workspace_name.endswith('}'):
-                var_name = workspace_name[2:-1]  # Remove ${ and }
-                azure_config['workspace_name'] = os.getenv(var_name)
-                if not azure_config['workspace_name']:
-                    raise ValueError(f"Environment variable {var_name} not found")
-    
-    return config
+    except Exception as e:
+        raise ValueError(f"Error loading configuration from {config_file}: {str(e)}")
 
 
 def validate_azure_config(config):
