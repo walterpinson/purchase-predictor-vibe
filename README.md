@@ -15,19 +15,24 @@ This project implements an end-to-end machine learning pipeline that:
 
 ## Project Structure
 
-``` text
+```
 purchase-predictor-vibe/
 ├── README.md                     # This file
 ├── requirements.txt              # Python dependencies
-├── config.yaml                   # Configuration settings
 ├── conda.yaml                   # Environment definition
-├── config_loader.py             # Shared configuration loader utility
+├── run_pipeline.sh              # Complete pipeline execution script
 ├── .env.local                   # Environment variables (not in git)
-├── data_prep.py                 # Data generation and preprocessing
-├── train.py                     # Model training script
-├── register.py                  # Model registration script
-├── deploy.py                    # Model deployment script
-├── score.py                     # Scoring script for endpoint
+├── .gitignore                   # Git ignore file
+├── config/                      # Configuration and utilities
+│   ├── config.yaml              # Configuration settings
+│   ├── config_loader.py         # Shared configuration loader utility (uses piny)
+│   └── test_config.py           # Configuration testing script
+├── src/                         # Source code
+│   ├── data_prep.py             # Data generation and preprocessing
+│   ├── train.py                 # Model training script
+│   ├── register.py              # Model registration script
+│   ├── deploy.py                # Model deployment script
+│   └── score.py                 # Scoring script for endpoint
 ├── context/                     # Project documentation
 │   ├── prd.md                   # Product Requirements
 │   ├── spec.md                  # Technical Specification
@@ -38,6 +43,8 @@ purchase-predictor-vibe/
 ├── processed_data/              # Preprocessed data
 └── models/                      # Model artifacts
     ├── model.pkl
+    ├── registration_info.yaml
+    └── endpoint_info.yaml
     ├── registration_info.yaml
     └── endpoint_info.yaml
 ```

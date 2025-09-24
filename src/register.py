@@ -10,7 +10,7 @@ from azure.ai.ml import MLClient
 from azure.ai.ml.entities import Model
 from azure.identity import DefaultAzureCredential
 import mlflow
-from config_loader import load_config
+from config.config_loader import load_config
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

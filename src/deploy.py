@@ -15,7 +15,7 @@ from azure.ai.ml.entities import (
     CodeConfiguration
 )
 from azure.identity import DefaultAzureCredential
-from config_loader import load_config
+from config.config_loader import load_config
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

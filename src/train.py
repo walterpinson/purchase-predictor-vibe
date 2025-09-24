@@ -14,7 +14,7 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 from sklearn.preprocessing import LabelEncoder
 import logging
 import joblib
-from config_loader import load_config
+from config.config_loader import load_config
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
