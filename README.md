@@ -17,8 +17,8 @@ This project implements an end-to-end machine learning pipeline that:
 
 ```
 purchase-predictor-vibe/
-├── README.md                     # This file
-├── requirements.txt              # Python dependencies
+├── README.md                    # This file
+├── requirements.txt             # Python dependencies
 ├── conda.yaml                   # Environment definition
 ├── run_pipeline.sh              # Complete pipeline execution script
 ├── .env.local                   # Environment variables (not in git)
