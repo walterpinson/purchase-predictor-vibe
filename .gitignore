@@ -1,0 +1,55 @@
+# Environment variables (contains sensitive data)
+.env.local
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Model artifacts and logs
+models/*.pkl
+models/run_id.txt
+models/registration_info.yaml
+models/endpoint_info.yaml
+mlruns/
+
+# Data files (if large)
+sample_data/
+processed_data/
+
+# Logs
+*.log
+logs/

@@ -1,0 +1,41 @@
+# Azure ML Configuration
+# These values will be loaded from environment variables (.env.local file)
+
+azure:
+  subscription_id: "${AZURE_SUBSCRIPTION_ID}"
+  resource_group: "${AZURE_RESOURCE_GROUP}"
+  workspace_name: "${AZURE_WORKSPACE_NAME}"
+
+# Model Configuration
+model:
+  type: "random_forest"  # Options: "random_forest", "logistic_regression"
+  random_state: 42
+
+# MLFlow Configuration
+mlflow:
+  experiment_name: "purchase_predictor"
+  run_name: "training_run"
+
+# Model Registration
+model_registration:
+  name: "purchase-predictor-model"
+  description: "Binary classifier for purchase prediction using customer and product features"
+
+# Deployment Configuration
+deployment:
+  endpoint_name: "purchase-predictor-endpoint"
+  deployment_name: "purchase-predictor-deployment"
+  environment_name: "purchase-predictor-env"
+  instance_type: "Standard_DS2_v2"
+  instance_count: 1
+
+# Data Configuration
+data:
+  train_path: "sample_data/train.csv"
+  test_path: "sample_data/test.csv"
+  feature_columns:
+    - "price"
+    - "user_rating"
+    - "category_encoded"
+    - "previously_purchased_encoded"
+  target_column: "label"

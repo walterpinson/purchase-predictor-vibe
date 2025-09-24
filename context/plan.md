@@ -14,6 +14,8 @@
   pandas
   PyYAML
   ```
+  
+- Run `pip install -r requirements.txt`
 
 ### 2. Data Preparation and Synthetic Data Creation ([data_prep.py])
 
