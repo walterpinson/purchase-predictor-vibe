@@ -7,9 +7,9 @@ import os
 import pandas as pd
 import numpy as np
 from faker import Faker
-from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 import logging
+from src.modules.preprocessing import PurchaseDataPreprocessor, save_processed_data
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -74,29 +74,6 @@ def generate_synthetic_data(n_samples=500):
     
     return pd.DataFrame(data)
 
-def preprocess_data(df):
-    """Preprocess the data for model training."""
-    logger.info("Preprocessing data...")
-    
-    # Create a copy to avoid modifying original
-    processed_df = df.copy()
-    
-    # Encode categorical variables
-    le_category = LabelEncoder()
-    processed_df['category_encoded'] = le_category.fit_transform(processed_df['category'])
-    
-    # Convert previously_purchased to binary
-    processed_df['previously_purchased_encoded'] = processed_df['previously_purchased'].map({'yes': 1, 'no': 0})
-    
-    # Select features for model
-    feature_columns = ['price', 'user_rating', 'category_encoded', 'previously_purchased_encoded']
-    target_column = 'label'
-    
-    X = processed_df[feature_columns]
-    y = processed_df[target_column]
-    
-    return X, y, le_category
-
 def save_raw_data(train_df, test_df, data_dir='sample_data'):
     """Save raw CSV data for reference."""
     os.makedirs(data_dir, exist_ok=True)
@@ -130,9 +107,10 @@ def main():
     # Save raw CSV files
     train_path, test_path = save_raw_data(train_data, test_data)
     
-    # Preprocess data
-    X_train, y_train, label_encoder = preprocess_data(train_data)
-    X_test, y_test, _ = preprocess_data(test_data)
+    # Preprocess data using shared preprocessor
+    preprocessor = PurchaseDataPreprocessor()
+    X_train, y_train = preprocessor.fit_transform_training_data(train_data)
+    X_test, y_test = preprocessor.transform_test_data(test_data)
     
     # Display data info
     logger.info(f"Training data shape: {X_train.shape}")
@@ -140,9 +118,8 @@ def main():
     logger.info(f"Label distribution in training: {y_train.value_counts().to_dict()}")
     logger.info(f"Label distribution in test: {y_test.value_counts().to_dict()}")
     
-    # Save processed data for training script
-    processed_dir = 'processed_data'
-    os.makedirs(processed_dir, exist_ok=True)
+    # Save processed data using shared utility
+    save_processed_data(X_train, y_train, X_test, y_test)
     
     train_processed = pd.concat([X_train, y_train], axis=1)
     test_processed = pd.concat([X_test, y_test], axis=1)

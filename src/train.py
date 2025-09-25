@@ -11,73 +11,40 @@ import mlflow.sklearn
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-from sklearn.preprocessing import LabelEncoder
 import logging
 import joblib
 from config.config_loader import load_config
+from src.modules.preprocessing import PurchaseDataPreprocessor, load_processed_data
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def load_data():
-    """Load training and test data."""
+    """Load training and test data using shared preprocessing utilities."""
     logger.info("Loading training and test data...")
     
     # Try to load processed data first
-    if os.path.exists('processed_data/train_processed.csv'):
-        train_df = pd.read_csv('processed_data/train_processed.csv')
-        test_df = pd.read_csv('processed_data/test_processed.csv')
-        
-        # Separate features and target
-        feature_columns = ['price', 'user_rating', 'category_encoded', 'previously_purchased_encoded']
-        X_train = train_df[feature_columns]
-        y_train = train_df['label']
-        X_test = test_df[feature_columns]
-        y_test = test_df['label']
-        
-        return X_train, X_test, y_train, y_test
+    processed_data = load_processed_data()
+    if processed_data is not None:
+        logger.info("Using previously processed data")
+        return processed_data
     
     # If processed data doesn't exist, load raw data and process it
     elif os.path.exists('sample_data/train.csv'):
-        logger.info("Processed data not found, loading raw data...")
+        logger.info("Processed data not found, loading and preprocessing raw data...")
         train_df = pd.read_csv('sample_data/train.csv')
         test_df = pd.read_csv('sample_data/test.csv')
         
-        # Preprocess data
-        X_train, X_test, y_train, y_test = preprocess_raw_data(train_df, test_df)
+        # Use shared preprocessor
+        preprocessor = PurchaseDataPreprocessor()
+        X_train, y_train = preprocessor.fit_transform_training_data(train_df)
+        X_test, y_test = preprocessor.transform_test_data(test_df)
+        
         return X_train, X_test, y_train, y_test
     
     else:
         raise FileNotFoundError("No training data found. Please run data_prep.py first.")
-
-def preprocess_raw_data(train_df, test_df):
-    """Preprocess raw data for training."""
-    logger.info("Preprocessing raw data...")
-    
-    # Encode categorical variables
-    le_category = LabelEncoder()
-    
-    # Fit on training data and transform both train and test
-    train_df['category_encoded'] = le_category.fit_transform(train_df['category'])
-    test_df['category_encoded'] = le_category.transform(test_df['category'])
-    
-    # Convert previously_purchased to binary
-    train_df['previously_purchased_encoded'] = train_df['previously_purchased'].map({'yes': 1, 'no': 0})
-    test_df['previously_purchased_encoded'] = test_df['previously_purchased'].map({'yes': 1, 'no': 0})
-    
-    # Select features
-    feature_columns = ['price', 'user_rating', 'category_encoded', 'previously_purchased_encoded']
-    
-    X_train = train_df[feature_columns]
-    X_test = test_df[feature_columns]
-    y_train = train_df['label']
-    y_test = test_df['label']
-    
-    # Save label encoder for later use
-    joblib.dump(le_category, 'models/label_encoder.pkl')
-    
-    return X_train, X_test, y_train, y_test
 
 def create_model(config):
     """Create and return a model based on configuration."""

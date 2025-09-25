@@ -10,6 +10,7 @@ import pandas as pd
 import mlflow
 import mlflow.sklearn
 import joblib
+from src.modules.preprocessing import PurchaseDataPreprocessor
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -20,7 +21,7 @@ def init():
     Initialize the model for scoring.
     This function is called when the container is initialized/started.
     """
-    global model, label_encoder
+    global model, preprocessor
     
     logger.info("Initializing model for scoring...")
     
@@ -47,14 +48,9 @@ def init():
             else:
                 raise FileNotFoundError("No model found in the specified path")
         
-        # Load label encoder if available
-        label_encoder_path = os.path.join(model_path, "label_encoder.pkl")
-        if os.path.exists(label_encoder_path):
-            label_encoder = joblib.load(label_encoder_path)
-            logger.info("Label encoder loaded successfully")
-        else:
-            label_encoder = None
-            logger.info("No label encoder found, will handle categorical data directly")
+        # Load fitted preprocessor
+        preprocessor = PurchaseDataPreprocessor.load_fitted_preprocessor()
+        logger.info("Preprocessor loaded successfully")
             
     except Exception as e:
         logger.error(f"Error loading model: {str(e)}")
@@ -130,32 +126,36 @@ def run(raw_data):
 
 def preprocess_raw_input(df):
     """
-    Preprocess raw input data to match model training format.
+    Preprocess raw input data using shared preprocessor.
     
     Args:
         df (pd.DataFrame): Raw input DataFrame
         
     Returns:
-        pd.DataFrame: Preprocessed DataFrame
+        pd.DataFrame: Preprocessed DataFrame ready for model
     """
-    logger.info("Preprocessing raw input data...")
+    logger.info("Preprocessing raw input data using shared preprocessor...")
+    
+    try:
+        # Use shared preprocessor for consistent transformation
+        processed_features = preprocessor.transform_inference_data(df)
+        return processed_features
+    except Exception as e:
+        logger.error(f"Preprocessing error: {str(e)}")
+        # Fallback to basic preprocessing if shared preprocessor fails
+        return _fallback_preprocessing(df)
+
+
+def _fallback_preprocessing(df):
+    """Fallback preprocessing if shared preprocessor is not available."""
+    logger.warning("Using fallback preprocessing - results may not be optimal")
     
     processed_df = df.copy()
     
-    # Handle category encoding
+    # Basic category encoding
     if 'category' in processed_df.columns:
-        if label_encoder is not None:
-            try:
-                processed_df['category_encoded'] = label_encoder.transform(processed_df['category'])
-            except ValueError:
-                # Handle unknown categories
-                logger.warning("Unknown categories found, using default encoding")
-                category_mapping = {'electronics': 0, 'books': 1, 'clothes': 2, 'home': 3, 'sports': 4}
-                processed_df['category_encoded'] = processed_df['category'].map(category_mapping).fillna(0)
-        else:
-            # Default category mapping
-            category_mapping = {'electronics': 0, 'books': 1, 'clothes': 2, 'home': 3, 'sports': 4}
-            processed_df['category_encoded'] = processed_df['category'].map(category_mapping).fillna(0)
+        category_mapping = {'electronics': 0, 'books': 1, 'clothes': 2, 'home': 3, 'sports': 4}
+        processed_df['category_encoded'] = processed_df['category'].map(category_mapping).fillna(0)
     
     # Handle previously_purchased encoding
     if 'previously_purchased' in processed_df.columns:
@@ -163,10 +163,8 @@ def preprocess_raw_input(df):
     
     # Select final features
     feature_columns = ['price', 'user_rating', 'category_encoded', 'previously_purchased_encoded']
-    final_df = processed_df[feature_columns]
-    
-    logger.info(f"Preprocessed data shape: {final_df.shape}")
-    return final_df
+    return processed_df[feature_columns]
+
 
 # For local testing
 if __name__ == "__main__":

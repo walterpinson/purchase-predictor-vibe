@@ -2,6 +2,16 @@
 
 A complete Python project for training and deploying a binary classifier to Azure Machine Learning Studio using Azure ML SDK v2 and MLFlow.
 
+## Features
+
+- **End-to-end MLOps pipeline** with Azure ML SDK v2 integration
+- **Shared preprocessing utilities** for consistent data transformation across training and inference  
+- **MLFlow tracking** for experiment management and model lifecycle
+- **Secure configuration management** with environment variables and secrets handling
+- **Production-ready deployment** with Azure managed online endpoints
+- **Synthetic data generation** for development and testing
+- **Configurable model selection** (Random Forest, Logistic Regression)
+
 ## Overview
 
 This project implements an end-to-end machine learning pipeline that:
@@ -13,9 +23,32 @@ This project implements an end-to-end machine learning pipeline that:
 - Deploys the model to a managed online endpoint
 - Provides REST API for real-time predictions
 
+## Preprocessing Architecture
+
+The project uses a **centralized preprocessing approach** to ensure consistency and eliminate code duplication:
+
+### Core Components
+
+- **`src/preprocessing.py`**: Contains the `PurchaseDataPreprocessor` class with standardized methods:
+  - `fit_transform_training_data()`: Fits preprocessing pipeline and transforms training data
+  - `transform_test_data()`: Applies fitted transformations to test data  
+  - `transform_inference_data()`: Transforms new data for real-time predictions
+  - `load_fitted_preprocessor()`: Loads saved preprocessing pipeline for inference
+
+### Benefits
+
+- **Consistency**: Identical transformations across training, testing, and inference
+- **Maintainability**: Single source of truth for all preprocessing logic
+- **Reliability**: Eliminates synchronization issues between duplicate code
+- **Scalability**: Easy to add new preprocessing steps in one place
+
+### Integration
+
+All scripts (`data_prep.py`, `train.py`, `score.py`) use the shared preprocessor, ensuring the same feature engineering pipeline throughout the ML lifecycle.
+
 ## Project Structure
 
-```
+```bash
 purchase-predictor-vibe/
 ├── README.md                    # This file
 ├── requirements.txt             # Python dependencies
@@ -26,9 +59,10 @@ purchase-predictor-vibe/
 ├── config/                      # Configuration and utilities
 │   ├── config.yaml              # Configuration settings
 │   ├── config_loader.py         # Shared configuration loader utility (uses piny)
-│   └── test_config.py           # Configuration testing script
+│   └── test_config.py           # Configuration validation and testing script
 ├── src/                         # Source code
 │   ├── data_prep.py             # Data generation and preprocessing
+│   ├── preprocessing.py         # Shared preprocessing utilities
 │   ├── train.py                 # Model training script
 │   ├── register.py              # Model registration script
 │   ├── deploy.py                # Model deployment script
@@ -43,8 +77,8 @@ purchase-predictor-vibe/
 ├── processed_data/              # Preprocessed data
 └── models/                      # Model artifacts
     ├── model.pkl
-    ├── registration_info.yaml
-    └── endpoint_info.yaml
+    ├── label_encoder.pkl
+    ├── preprocessing_metadata.pkl
     ├── registration_info.yaml
     └── endpoint_info.yaml
 ```
