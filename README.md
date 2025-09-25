@@ -107,30 +107,35 @@ The model predicts user purchase preference based on these features:
 ### Installation
 
 1. Clone the repository:
+
    ```bash
    git clone <repository-url>
    cd purchase-predictor-vibe
    ```
 
 2. Create and activate conda environment:
+
    ```bash
    conda env create -f conda.yaml
    conda activate purchase-predictor
    ```
 
 3. Verify installation:
+
    ```bash
    python --version
    pip list
    ```
 
-3. Configure Azure credentials:
+4. Configure Azure credentials:
+
    ```bash
    az login
    az account set --subscription <your-subscription-id>
    ```
 
-4. Update your `.env.local` file with Azure credentials:
+5. Update your `.env.local` file with Azure credentials:
+
    ```bash
    AZURE_SUBSCRIPTION_ID=your-actual-subscription-id
    AZURE_RESOURCE_GROUP=your-actual-resource-group
@@ -162,18 +167,22 @@ python deploy.py
 ### Detailed Steps
 
 #### 1. Data Preparation
+
 ```bash
 python data_prep.py
 ```
+
 - Generates 500 synthetic samples with realistic distributions
 - Creates `train.csv` and `test.csv` in `sample_data/`
 - Preprocesses data and saves to `processed_data/`
 - Handles categorical encoding and feature engineering
 
 #### 2. Model Training
+
 ```bash
 python train.py
 ```
+
 - Trains a Random Forest classifier (configurable)
 - Uses MLFlow for experiment tracking
 - Saves model locally and logs to MLFlow
@@ -181,18 +190,22 @@ python train.py
 - Outputs model accuracy and classification report
 
 #### 3. Model Registration
+
 ```bash
 python register.py
 ```
+
 - Connects to Azure ML workspace
 - Registers the MLFlow model
 - Creates model version in Azure ML
 - Saves registration info for deployment
 
 #### 4. Model Deployment
+
 ```bash
 python deploy.py
 ```
+
 - Creates managed online endpoint
 - Sets up custom environment
 - Deploys model with scoring script
@@ -202,11 +215,14 @@ python deploy.py
 ### Configuration Options
 
 #### Model Configuration
+
 In `config.yaml`, you can specify:
+
 - `model.type`: "random_forest" or "logistic_regression"
 - `model.random_state`: Random seed for reproducibility
 
 #### Deployment Configuration
+
 - `deployment.endpoint_name`: Name for Azure ML endpoint
 - `deployment.deployment_name`: Name for model deployment
 - `deployment.instance_type`: VM size for endpoint
@@ -217,6 +233,7 @@ In `config.yaml`, you can specify:
 Once deployed, use the REST API to make predictions:
 
 ### Using Python
+
 ```python
 import requests
 import json
@@ -240,6 +257,7 @@ print(predictions)
 ```
 
 ### Using curl
+
 ```bash
 curl -X POST "https://your-endpoint-uri.azure.com/score" \
      -H "Content-Type: application/json" \
@@ -294,6 +312,7 @@ curl -X POST "https://your-endpoint-uri.azure.com/score" \
 ### Custom Models
 
 To use different algorithms:
+
 1. Import model in `train.py`
 2. Add configuration in `create_model()` function
 3. Update `config.yaml` model type
@@ -314,6 +333,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Support
 
 For issues and questions:
+
 - Check the troubleshooting section above
 - Review Azure ML documentation
 - Open an issue in the repository
