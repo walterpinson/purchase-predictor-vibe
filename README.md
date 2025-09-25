@@ -44,7 +44,7 @@ The project uses a **centralized preprocessing approach** to ensure consistency 
 
 ### Integration
 
-All scripts (`data_prep.py`, `train.py`, `score.py`) use the shared preprocessor, ensuring the same feature engineering pipeline throughout the ML lifecycle.
+All scripts (`utilities/data_prep.py`, `train.py`, `scripts/score.py`) use the shared preprocessor, ensuring the same feature engineering pipeline throughout the ML lifecycle.
 
 ## Project Structure
 
@@ -61,12 +61,15 @@ purchase-predictor-vibe/
 │   ├── config_loader.py         # Shared configuration loader utility (uses piny)
 │   └── test_config.py           # Configuration validation and testing script
 ├── src/                         # Source code
-│   ├── data_prep.py             # Data generation and preprocessing
-│   ├── preprocessing.py         # Shared preprocessing utilities
 │   ├── train.py                 # Model training script
 │   ├── register.py              # Model registration script
 │   ├── deploy.py                # Model deployment script
-│   └── score.py                 # Scoring script for endpoint
+│   ├── modules/                 # Shared modules
+│   │   └── preprocessing.py     # Shared preprocessing utilities
+│   ├── scripts/                 # Deployment scripts
+│   │   └── score.py             # Scoring script for endpoint
+│   └── utilities/               # Utility scripts
+│       └── data_prep.py         # Data generation and preprocessing
 ├── context/                     # Project documentation
 │   ├── prd.md                   # Product Requirements
 │   ├── spec.md                  # Technical Specification
@@ -298,14 +301,14 @@ curl -X POST "https://your-endpoint-uri.azure.com/score" \
 - Training logs: Console output during `python train.py`
 - MLFlow tracking: Check local MLFlow UI with `mlflow ui`
 - Azure logs: Available in Azure ML Studio under Endpoints
-- Local testing: Run `python score.py` for scoring script testing
+- Local testing: Run `python src/scripts/score.py` for scoring script testing
 
 ## Development
 
 ### Adding New Features
 
-1. Update data schema in `data_prep.py`
-2. Modify preprocessing in `train.py` and `score.py`
+1. Update data schema in `utilities/data_prep.py`
+2. Modify preprocessing in `train.py` and `scripts/score.py`
 3. Update configuration in `config.yaml`
 4. Test locally before deployment
 

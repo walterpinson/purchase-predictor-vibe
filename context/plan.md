@@ -45,7 +45,7 @@
 - Set deployment name, model reference, environment (conda.yaml), scoring script.
 - Create endpoint and deployment; wait for completion.
 
-### 6. Scoring Script ([score.py])
+### 6. Scoring Script (scripts/score.py)
 
 - Implement `init()` and `run()` per Azure ML scoring requirements to load and score model.
 

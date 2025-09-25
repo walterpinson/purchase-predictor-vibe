@@ -119,7 +119,7 @@ def create_deployment(ml_client, config, registration_info, endpoint, environmen
         environment=environment,
         code_configuration=CodeConfiguration(
             code=".",
-            scoring_script="score.py"
+            scoring_script="src/scripts/score.py"
         ),
         instance_type="Standard_DS2_v2",
         instance_count=1,
