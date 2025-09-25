@@ -96,8 +96,12 @@ def save_model_with_mlflow(model, X_train, config, metrics):
     """Save model using MLFlow."""
     logger.info("Saving model with MLFlow...")
     
+    # Get artifact paths from config
+    models_dir = config.get('artifacts', {}).get('models_dir', 'models')
+    run_id_file = config.get('artifacts', {}).get('run_id_file', 'models/run_id.txt')
+    
     # Create models directory
-    os.makedirs('models', exist_ok=True)
+    os.makedirs(models_dir, exist_ok=True)
     
     # Set MLFlow experiment
     experiment_name = config.get('mlflow', {}).get('experiment_name', 'purchase_predictor')
@@ -131,7 +135,7 @@ def save_model_with_mlflow(model, X_train, config, metrics):
         logger.info(f"Model saved with run ID: {run_id}")
         
         # Save run ID to file for registration script
-        with open('models/run_id.txt', 'w') as f:
+        with open(run_id_file, 'w') as f:
             f.write(run_id)
     
     return run_id
@@ -143,8 +147,12 @@ def main():
     # Load configuration
     config = load_config()
     
+    # Get artifact paths from config
+    models_dir = config.get('artifacts', {}).get('models_dir', 'models')
+    local_model_file = config.get('artifacts', {}).get('local_model_file', 'models/model.pkl')
+    
     # Create models directory
-    os.makedirs('models', exist_ok=True)
+    os.makedirs(models_dir, exist_ok=True)
     
     # Load data
     X_train, X_test, y_train, y_test = load_data()
@@ -162,9 +170,8 @@ def main():
     run_id = save_model_with_mlflow(trained_model, X_train, config, metrics)
     
     # Also save model locally for backup
-    local_model_path = 'models/model.pkl'
-    joblib.dump(trained_model, local_model_path)
-    logger.info(f"Model also saved locally to {local_model_path}")
+    joblib.dump(trained_model, local_model_file)
+    logger.info(f"Model also saved locally to {local_model_file}")
     
     logger.info("Training pipeline completed successfully!")
     logger.info(f"Final model accuracy: {metrics['accuracy']:.4f}")

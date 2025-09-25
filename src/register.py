@@ -34,10 +34,12 @@ def get_azure_ml_client(config):
     logger.info(f"Connected to Azure ML workspace: {workspace_name}")
     return ml_client
 
-def get_latest_mlflow_run():
+def get_latest_mlflow_run(config):
     """Get the latest MLFlow run ID."""
+    # Get run ID file path from config
+    run_id_file = config.get('artifacts', {}).get('run_id_file', 'models/run_id.txt')
+    
     # Try to read run ID from file first
-    run_id_file = 'models/run_id.txt'
     if os.path.exists(run_id_file):
         with open(run_id_file, 'r') as f:
             run_id = f.read().strip()
@@ -67,7 +69,7 @@ def register_model(ml_client, config):
     logger.info("Registering model with Azure ML...")
     
     # Get MLFlow run ID
-    run_id = get_latest_mlflow_run()
+    run_id = get_latest_mlflow_run(config)
     
     # Get model configuration
     model_name = config.get('model_registration', {}).get('name', 'purchase-predictor-model')
@@ -105,10 +107,13 @@ def register_model(ml_client, config):
         'run_id': run_id
     }
     
-    with open('models/registration_info.yaml', 'w') as f:
+    # Get registration info file path from config
+    registration_info_file = config.get('artifacts', {}).get('registration_info_file', 'models/registration_info.yaml')
+    
+    with open(registration_info_file, 'w') as f:
         yaml.dump(registration_info, f)
     
-    logger.info("Registration info saved to models/registration_info.yaml")
+    logger.info(f"Registration info saved to {registration_info_file}")
     
     return registered_model
 
@@ -119,8 +124,11 @@ def main():
     # Load configuration
     config = load_config()
     
+    # Get models directory from config
+    models_dir = config.get('artifacts', {}).get('models_dir', 'models')
+    
     # Create models directory if it doesn't exist
-    os.makedirs('models', exist_ok=True)
+    os.makedirs(models_dir, exist_ok=True)
     
     # Get Azure ML client
     ml_client = get_azure_ml_client(config)

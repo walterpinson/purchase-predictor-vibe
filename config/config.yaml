@@ -39,3 +39,11 @@ data:
     - "category_encoded"
     - "previously_purchased_encoded"
   target_column: "label"
+
+# Model Artifacts Configuration
+artifacts:
+  models_dir: "models"
+  run_id_file: "models/run_id.txt"
+  registration_info_file: "models/registration_info.yaml"
+  endpoint_info_file: "models/endpoint_info.yaml"
+  local_model_file: "models/model.pkl"
