@@ -208,15 +208,36 @@ def test_endpoint(ml_client, config):
     }
     
     try:
-        response = ml_client.online_endpoints.invoke(
-            endpoint_name=endpoint_name,
-            request_file=None,
-            deployment_name=config['deployment']['deployment_name']
-        )
-        logger.info(f"Test response: {response}")
+        import json
+        import tempfile
+        
+        # Create temporary file with test data (Azure ML SDK expects file input)
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            json.dump(test_data, f)
+            temp_file = f.name
+        
+        try:
+            response = ml_client.online_endpoints.invoke(
+                endpoint_name=endpoint_name,
+                request_file=temp_file,  # Now using the test data via temp file
+                deployment_name=config['deployment']['deployment_name']
+            )
+            
+            logger.info(f"✅ Test successful! Predictions: {response}")
+            logger.info("Sample interpretations:")
+            logger.info("  [25.99, 4, 1, 1] -> Expected: High purchase probability (low price, good rating, previous customer)")
+            logger.info("  [150.00, 2, 0, 0] -> Expected: Low purchase probability (high price, poor rating, new customer)")
+            
+        finally:
+            # Clean up temp file
+            os.unlink(temp_file)
+            
     except Exception as e:
-        logger.warning(f"Test failed (this is normal initially): {e}")
-        logger.info("You can test the endpoint manually once it's fully ready.")
+        logger.warning(f"Endpoint test failed: {e}")
+        logger.info("This may be normal if the endpoint is still warming up.")
+        logger.info("You can test manually once the endpoint is fully ready.")
+        logger.info("Test data format:")
+        logger.info(json.dumps(test_data, indent=2))
 
 def main():
     """Main deployment function."""
