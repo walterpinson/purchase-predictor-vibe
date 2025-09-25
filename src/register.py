@@ -48,7 +48,8 @@ def get_latest_mlflow_run(config):
     
     # Otherwise, get the latest run from MLFlow
     try:
-        experiment = mlflow.get_experiment_by_name("purchase_predictor")
+        experiment_name = config.get('mlflow', {}).get('experiment_name', 'purchase_predictor')
+        experiment = mlflow.get_experiment_by_name(experiment_name)
         if experiment:
             runs = mlflow.search_runs(
                 experiment_ids=[experiment.experiment_id],
@@ -74,9 +75,10 @@ def register_model(ml_client, config):
     # Get model configuration
     model_name = config.get('model_registration', {}).get('name', 'purchase-predictor-model')
     model_description = config.get('model_registration', {}).get('description', 'Binary classifier for purchase prediction')
+    artifact_path = config.get('mlflow', {}).get('artifact_path', 'model')
     
     # Create model path (MLFlow format)
-    model_path = f"runs:/{run_id}/model"
+    model_path = f"runs:/{run_id}/{artifact_path}"
     
     # Create model entity
     model = Model(

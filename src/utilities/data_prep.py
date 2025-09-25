@@ -10,6 +10,7 @@ from faker import Faker
 from sklearn.model_selection import train_test_split
 import logging
 from src.modules.preprocessing import PurchaseDataPreprocessor, save_processed_data
+from config.config_loader import load_config
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -93,6 +94,18 @@ def main():
     """Main function to generate and prepare data."""
     logger.info("Starting data preparation...")
     
+    # Load configuration
+    config = load_config()
+    
+    # Get data directories from config
+    train_path = config.get('data', {}).get('train_path', 'sample_data/train.csv')
+    test_path = config.get('data', {}).get('test_path', 'sample_data/test.csv')
+    processed_data_dir = config.get('data', {}).get('processed_data_dir', 'processed_data')
+    
+    # Extract directory paths
+    data_dir = os.path.dirname(train_path)
+    processed_dir = processed_data_dir
+    
     # Generate synthetic data
     full_data = generate_synthetic_data(n_samples=500)
     
@@ -105,7 +118,7 @@ def main():
     )
     
     # Save raw CSV files
-    train_path, test_path = save_raw_data(train_data, test_data)
+    train_path, test_path = save_raw_data(train_data, test_data, data_dir)
     
     # Preprocess data using shared preprocessor
     preprocessor = PurchaseDataPreprocessor()
@@ -121,6 +134,8 @@ def main():
     # Save processed data using shared utility
     save_processed_data(X_train, y_train, X_test, y_test)
     
+    # Also save processed data as CSV for reference
+    os.makedirs(processed_dir, exist_ok=True)
     train_processed = pd.concat([X_train, y_train], axis=1)
     test_processed = pd.concat([X_test, y_test], axis=1)
     

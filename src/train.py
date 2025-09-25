@@ -24,6 +24,11 @@ def load_data():
     """Load training and test data using shared preprocessing utilities."""
     logger.info("Loading training and test data...")
     
+    # Load configuration to get data paths
+    config = load_config()
+    train_path = config.get('data', {}).get('train_path', 'sample_data/train.csv')
+    test_path = config.get('data', {}).get('test_path', 'sample_data/test.csv')
+    
     # Try to load processed data first
     processed_data = load_processed_data()
     if processed_data is not None:
@@ -31,10 +36,10 @@ def load_data():
         return processed_data
     
     # If processed data doesn't exist, load raw data and process it
-    elif os.path.exists('sample_data/train.csv'):
+    elif os.path.exists(train_path):
         logger.info("Processed data not found, loading and preprocessing raw data...")
-        train_df = pd.read_csv('sample_data/train.csv')
-        test_df = pd.read_csv('sample_data/test.csv')
+        train_df = pd.read_csv(train_path)
+        test_df = pd.read_csv(test_path)
         
         # Use shared preprocessor
         preprocessor = PurchaseDataPreprocessor()
@@ -44,7 +49,7 @@ def load_data():
         return X_train, X_test, y_train, y_test
     
     else:
-        raise FileNotFoundError("No training data found. Please run data_prep.py first.")
+        raise FileNotFoundError(f"No training data found at {train_path}. Please run data_prep.py first.")
 
 def create_model(config):
     """Create and return a model based on configuration."""
@@ -124,10 +129,13 @@ def save_model_with_mlflow(model, X_train, config, metrics):
         mlflow.log_metric("accuracy", metrics['accuracy'])
         
         # Log model
+        artifact_path = config.get('mlflow', {}).get('artifact_path', 'model')
+        registered_model_name = config.get('mlflow', {}).get('registered_model_name', 'purchase_predictor_model')
+        
         mlflow.sklearn.log_model(
             sk_model=model,
-            artifact_path="model",
-            registered_model_name="purchase_predictor_model"
+            artifact_path=artifact_path,
+            registered_model_name=registered_model_name
         )
         
         # Get run ID for later use

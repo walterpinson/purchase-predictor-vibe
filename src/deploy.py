@@ -39,13 +39,14 @@ def get_azure_ml_client(config):
     logger.info(f"Connected to Azure ML workspace: {workspace_name}")
     return ml_client
 
-def load_registration_info():
+def load_registration_info(config):
     """Load model registration information."""
-    registration_file = 'models/registration_info.yaml'
-    if not os.path.exists(registration_file):
-        raise FileNotFoundError("Registration info not found. Please run register.py first.")
+    registration_info_file = config.get('artifacts', {}).get('registration_info_file', 'models/registration_info.yaml')
     
-    with open(registration_file, 'r') as f:
+    if not os.path.exists(registration_info_file):
+        raise FileNotFoundError(f"Registration info not found at {registration_info_file}. Please run register.py first.")
+    
+    with open(registration_info_file, 'r') as f:
         registration_info = yaml.safe_load(f)
     
     logger.info(f"Loaded registration info for model: {registration_info['model_name']} v{registration_info['model_version']}")
@@ -183,10 +184,13 @@ def get_endpoint_details(ml_client, config):
         'auth_mode': endpoint.auth_mode
     }
     
-    with open('models/endpoint_info.yaml', 'w') as f:
+    # Get endpoint info file path from config
+    endpoint_info_file = config.get('artifacts', {}).get('endpoint_info_file', 'models/endpoint_info.yaml')
+    
+    with open(endpoint_info_file, 'w') as f:
         yaml.dump(endpoint_info, f)
     
-    logger.info("Endpoint info saved to models/endpoint_info.yaml")
+    logger.info(f"Endpoint info saved to {endpoint_info_file}")
     return endpoint
 
 def test_endpoint(ml_client, config):
@@ -222,7 +226,7 @@ def main():
     config = load_config()
     
     # Load model registration info
-    registration_info = load_registration_info()
+    registration_info = load_registration_info(config)
     
     # Get Azure ML client
     ml_client = get_azure_ml_client(config)
