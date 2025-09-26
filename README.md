@@ -44,7 +44,7 @@ The project uses a **centralized preprocessing approach** to ensure consistency 
 
 ### Integration
 
-All scripts (`utilities/data_prep.py`, `train.py`, `scripts/score.py`) use the shared preprocessor, ensuring the same feature engineering pipeline throughout the ML lifecycle.
+All scripts (`src/utilities/data_prep.py`, `src/pipeline/train.py`, `src/scripts/score.py`) use the shared preprocessor, ensuring the same feature engineering pipeline throughout the ML lifecycle.
 
 ## Project Structure
 
@@ -61,9 +61,10 @@ purchase-predictor-vibe/
 │   ├── config_loader.py         # Shared configuration loader utility (uses piny)
 │   └── test_config.py           # Configuration validation and testing script
 ├── src/                         # Source code
-│   ├── train.py                 # Model training script
-│   ├── register.py              # Model registration script
-│   ├── deploy.py                # Model deployment script
+│   ├── pipeline/                # MLOps pipeline scripts
+│   │   ├── train.py             # Model training script
+│   │   ├── register.py          # Model registration script
+│   │   └── deploy.py            # Model deployment script
 │   ├── modules/                 # Shared modules
 │   │   └── preprocessing.py     # Shared preprocessing utilities
 │   ├── scripts/                 # Deployment scripts
@@ -155,16 +156,16 @@ Run the complete pipeline with these commands:
 
 ```bash
 # 1. Generate synthetic data and preprocess
-python data_prep.py
+python src/utilities/data_prep.py
 
 # 2. Train the model
-python train.py
+python src/pipeline/train.py
 
 # 3. Register model in Azure ML
-python register.py
+python src/pipeline/register.py
 
 # 4. Deploy to online endpoint
-python deploy.py
+python src/pipeline/deploy.py
 ```
 
 ### Detailed Steps
@@ -172,7 +173,7 @@ python deploy.py
 #### 1. Data Preparation
 
 ```bash
-python data_prep.py
+python src/utilities/data_prep.py
 ```
 
 - Generates 500 synthetic samples with realistic distributions
@@ -183,7 +184,7 @@ python data_prep.py
 #### 2. Model Training
 
 ```bash
-python train.py
+python src/pipeline/train.py
 ```
 
 - Trains a Random Forest classifier (configurable)
@@ -195,7 +196,7 @@ python train.py
 #### 3. Model Registration
 
 ```bash
-python register.py
+python src/pipeline/register.py
 ```
 
 - Connects to Azure ML workspace
@@ -206,7 +207,7 @@ python register.py
 #### 4. Model Deployment
 
 ```bash
-python deploy.py
+python src/pipeline/deploy.py
 ```
 
 - Creates managed online endpoint
@@ -307,8 +308,8 @@ curl -X POST "https://your-endpoint-uri.azure.com/score" \
 
 ### Adding New Features
 
-1. Update data schema in `utilities/data_prep.py`
-2. Modify preprocessing in `train.py` and `scripts/score.py`
+1. Update data schema in `src/utilities/data_prep.py`
+2. Modify preprocessing in `src/pipeline/train.py` and `src/scripts/score.py`
 3. Update configuration in `config.yaml`
 4. Test locally before deployment
 

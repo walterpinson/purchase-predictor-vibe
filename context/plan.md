@@ -27,19 +27,19 @@
   - Ensure no overlap between train and test sets.
 - Export processed data sets for use in training and evaluation.
 
-### 3. Training ([train.py])
+### 3. Training (pipeline/train.py)
 
 - Read train data.
 - Train a scikit-learn classifier (e.g., LogisticRegression).
 - Save model with MLFlow (`mlflow.sklearn.log_model()`).
 
-### 4. Registration ([register.py])
+### 4. Registration (pipeline/register.py)
 
 - Connect to Azure ML workspace via SDK.
 - Register the MLFlow model.
 - Store model name and version for deployment.
 
-### 5. Deployment ([deploy.py])
+### 5. Deployment (pipeline/deploy.py)
 
 - Define online endpoint using SDK.
 - Set deployment name, model reference, environment (conda.yaml), scoring script.

@@ -63,7 +63,7 @@ def get_latest_mlflow_run(config):
     except Exception as e:
         logger.warning(f"Could not retrieve run from MLFlow: {e}")
     
-    raise ValueError("No MLFlow run found. Please run train.py first.")
+    raise ValueError("No MLFlow run found. Please run src/pipeline/train.py first.")
 
 def register_model(ml_client, config):
     """Register the MLFlow model with Azure ML."""

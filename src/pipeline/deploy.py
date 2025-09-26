@@ -44,7 +44,7 @@ def load_registration_info(config):
     registration_info_file = config.get('artifacts', {}).get('registration_info_file', 'models/registration_info.yaml')
     
     if not os.path.exists(registration_info_file):
-        raise FileNotFoundError(f"Registration info not found at {registration_info_file}. Please run register.py first.")
+        raise FileNotFoundError(f"Registration info not found at {registration_info_file}. Please run src/pipeline/register.py first.")
     
     with open(registration_info_file, 'r') as f:
         registration_info = yaml.safe_load(f)

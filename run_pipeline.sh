@@ -15,16 +15,16 @@ echo "🔧 Activating conda environment..."
 source activate purchase-predictor
 
 echo "📊 Generating synthetic data..."
-python data_prep.py
+python src/utilities/data_prep.py
 
 echo "🤖 Training model..."
-python train.py
+python src/pipeline/train.py
 
 echo "📝 Registering model with Azure ML..."
-python register.py
+python src/pipeline/register.py
 
 echo "🚢 Deploying model to endpoint..."
-python deploy.py
+python src/pipeline/deploy.py
 
 echo "✅ Pipeline completed successfully!"
 echo ""

@@ -11,12 +11,12 @@
 
 ### Module Overview
 
-- **utilities/data_prep.py**: Loads and splits CSV data into train/test sets.
-- **train.py**: Trains the classifier, persists model using MLFlow.
-- **register.py**: Registers model with Azure ML workspace.
-- **deploy.py**: Deploys the model to an online endpoint.
-- **scripts/score.py**: Scoring script used for deployment (REST endpoint).
-- **modules/preprocessing.py**: Shared preprocessing utilities for consistent data transformation.
+- **src/utilities/data_prep.py**: Loads and splits CSV data into train/test sets.
+- **src/pipeline/train.py**: Trains the classifier, persists model using MLFlow.
+- **src/pipeline/register.py**: Registers model with Azure ML workspace.
+- **src/pipeline/deploy.py**: Deploys the model to an online endpoint.
+- **src/scripts/score.py**: Scoring script used for deployment (REST endpoint).
+- **src/modules/preprocessing.py**: Shared preprocessing utilities for consistent data transformation.
 - **conda.yaml**: Environment definition (dependencies).
 - **config/config.yaml**: Project settings (resource group, workspace, endpoint names).
 
@@ -25,9 +25,10 @@
 ``` bash
 /project-root
   |- src/
-      |- train.py
-      |- register.py
-      |- deploy.py
+      |- pipeline/
+          |- train.py
+          |- register.py
+          |- deploy.py
       |- modules/
           |- preprocessing.py
       |- scripts/

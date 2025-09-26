@@ -49,7 +49,7 @@ def load_data():
         return X_train, X_test, y_train, y_test
     
     else:
-        raise FileNotFoundError(f"No training data found at {train_path}. Please run data_prep.py first.")
+        raise FileNotFoundError(f"No training data found at {train_path}. Please run src/utilities/data_prep.py first.")
 
 def create_model(config):
     """Create and return a model based on configuration."""
