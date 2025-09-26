@@ -15,6 +15,8 @@ from azure.ai.ml.entities import (
     CodeConfiguration
 )
 from azure.identity import DefaultAzureCredential
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from config.config_loader import load_config
 
 # Set up logging
