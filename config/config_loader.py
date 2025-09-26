@@ -9,25 +9,38 @@ from piny import YamlLoader
 from dotenv import load_dotenv
 
 
-def load_config(config_file='config.yaml', env_file='.env.local'):
+def load_config(config_file=None, env_file=None):
     """
     Load configuration from YAML file with automatic environment variable substitution.
     
     Args:
-        config_file (str): Path to the YAML configuration file
-        env_file (str): Path to the environment file (optional)
+        config_file (str): Path to the YAML configuration file (defaults to config/config.yaml from project root)
+        env_file (str): Path to the environment file (defaults to .env.local from project root)
     
     Returns:
         dict: Configuration dictionary with environment variables expanded
     """
+    # Find project root (assuming config_loader.py is in config/ directory)
+    project_root = Path(__file__).parent.parent
+    
+    # Set default paths relative to project root
+    if config_file is None:
+        config_file = project_root / 'config' / 'config.yaml'
+    elif not os.path.isabs(config_file):
+        config_file = project_root / config_file
+    
+    if env_file is None:
+        env_file = project_root / '.env.local'
+    elif not os.path.isabs(env_file):
+        env_file = project_root / env_file
+    
     # Load environment variables from .env.local if it exists
-    env_path = Path(env_file)
-    if env_path.exists():
-        load_dotenv(env_path)
+    if Path(env_file).exists():
+        load_dotenv(env_file)
     
     try:
         # Use piny to load YAML with automatic environment variable substitution
-        config = YamlLoader(path=config_file).load()
+        config = YamlLoader(path=str(config_file)).load()
         return config
     except FileNotFoundError:
         raise FileNotFoundError(f"{config_file} not found. Please create it with your configuration.")
