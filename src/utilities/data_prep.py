@@ -6,7 +6,6 @@ Generates synthetic training and test data, then preprocesses it for model train
 import os
 import pandas as pd
 import numpy as np
-from faker import Faker
 from sklearn.model_selection import train_test_split
 import logging
 from src.modules.preprocessing import PurchaseDataPreprocessor, save_processed_data
@@ -16,7 +15,6 @@ from config.config_loader import load_config
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-fake = Faker()
 np.random.seed(42)  # For reproducibility
 
 def generate_synthetic_data(n_samples=500):
