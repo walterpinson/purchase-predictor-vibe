@@ -42,11 +42,8 @@ def get_azure_ml_client(config):
     return ml_client
 
 def get_latest_mlflow_run(config):
-    """Get the latest MLFlow run ID."""
-    # Get run ID file path from config
-    run_id_file = config.get('artifacts', {}).get('run_id_file', 'models/run_id.txt')
-    
-    # Try to get the latest run from MLFlow first (more reliable)
+    """Get the latest MLFlow run ID from local tracking."""
+    # Try to get the latest run from local MLFlow first
     try:
         experiment_name = config.get('mlflow', {}).get('experiment_name', 'purchase_predictor')
         logger.info(f"Looking for latest run in experiment: {experiment_name}")
@@ -61,21 +58,21 @@ def get_latest_mlflow_run(config):
             )
             if not runs.empty:
                 run_id = runs.iloc[0]['run_id']
-                logger.info(f"Found latest run ID from MLFlow: {run_id}")
+                logger.info(f"Found latest run ID from local MLFlow: {run_id}")
                 logger.info(f"Run status: {runs.iloc[0]['status']}")
                 logger.info(f"Run start time: {runs.iloc[0]['start_time']}")
                 return run_id
         else:
-            logger.warning(f"Experiment '{experiment_name}' not found")
+            logger.warning(f"Experiment '{experiment_name}' not found in local MLFlow tracking")
     except Exception as e:
-        logger.warning(f"Could not retrieve run from MLFlow: {e}")
+        logger.warning(f"Could not retrieve run from local MLFlow: {e}")
     
     # Fallback to reading from file
+    run_id_file = config.get('artifacts', {}).get('run_id_file', 'models/run_id.txt')
     if os.path.exists(run_id_file):
         with open(run_id_file, 'r') as f:
             run_id = f.read().strip()
         logger.info(f"Using run ID from file: {run_id}")
-        logger.warning("This run ID may be stale. Consider running training again.")
         return run_id
     
     raise ValueError("No MLFlow run found. Please run src/pipeline/train.py first to create a new training run.")
@@ -84,26 +81,36 @@ def register_model(ml_client, config):
     """Register the MLFlow model with Azure ML."""
     logger.info("Registering model with Azure ML...")
     
-    # Get MLFlow run ID
+    # Get MLFlow run ID from local tracking
     run_id = get_latest_mlflow_run(config)
     
     # Get model configuration
     model_name = config.get('model_registration', {}).get('name', 'purchase-predictor-model')
     model_description = config.get('model_registration', {}).get('description', 'Binary classifier for purchase prediction')
     
-    # Create model path (MLFlow format) - using "model" as the standard artifact path
-    model_path = f"runs:/{run_id}/model"
+    # Use the local MLFlow model path instead of Azure ML runs path
+    # This approach uploads the local model to Azure ML
+    local_model_file = config.get('artifacts', {}).get('local_model_file', 'models/model.pkl')
+    
+    if os.path.exists(local_model_file):
+        logger.info(f"Using local model file: {local_model_file}")
+        model_path = local_model_file
+    else:
+        # Fallback to MLFlow run path (may not work with Azure ML)
+        logger.warning("Local model file not found, trying MLFlow run path")
+        model_path = f"runs:/{run_id}/model"
     
     # Create model entity
     model = Model(
         name=model_name,
         path=model_path,
         description=model_description,
-        type="mlflow_model",
+        type="custom_model" if local_model_file else "mlflow_model",
         tags={
             "framework": "sklearn",
             "type": "binary_classification",
-            "problem": "purchase_prediction"
+            "problem": "purchase_prediction",
+            "run_id": run_id
         }
     )
     

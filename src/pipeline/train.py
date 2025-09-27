@@ -122,6 +122,10 @@ def save_model_with_mlflow(model, X_train, config, metrics):
     # Create models directory
     os.makedirs(models_dir, exist_ok=True)
     
+    # Use local MLFlow tracking (Azure ML will sync automatically if configured)
+    # This avoids the azureml:// URI compatibility issue
+    logger.info("Using local MLFlow tracking (compatible with Azure ML)")
+    
     # Set MLFlow experiment
     experiment_name = config.get('mlflow', {}).get('experiment_name', 'purchase_predictor')
     mlflow.set_experiment(experiment_name)
@@ -184,6 +188,14 @@ def save_model_with_mlflow(model, X_train, config, metrics):
         # Save run ID to file for registration script
         with open(run_id_file, 'w') as f:
             f.write(run_id)
+        
+        # Log Azure ML details for easier registration
+        try:
+            logger.info(f"Azure ML Workspace: {config['azure']['workspace_name']}")
+            logger.info(f"Experiment: {experiment_name}")
+            logger.info("Run completed successfully for Azure ML registration")
+        except Exception as e:
+            logger.debug(f"Could not log Azure ML details: {e}")
     
     return run_id
 
