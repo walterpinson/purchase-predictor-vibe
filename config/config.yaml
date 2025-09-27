@@ -15,7 +15,6 @@ model:
 mlflow:
   experiment_name: "purchase_predictor"
   run_name: "training_run"
-  artifact_path: "model"
   registered_model_name: "purchase_predictor_model"
 
 # Model Registration

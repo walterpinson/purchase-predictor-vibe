@@ -78,20 +78,20 @@ def create_model(config):
 
 def train_model(X_train, y_train, model):
     """Train the model."""
-    logger.info("Training model...")
+    logger.info(f"Training model on {len(X_train)} samples with {X_train.shape[1] if hasattr(X_train, 'shape') else 'unknown'} features...")
     model.fit(X_train, y_train)
     logger.info("Model training completed")
     return model
 
 def evaluate_model(model, X_test, y_test):
     """Evaluate the model and return metrics."""
-    logger.info("Evaluating model...")
+    logger.info(f"Evaluating model on {len(X_test)} test samples...")
     
     y_pred = model.predict(X_test)
     accuracy = accuracy_score(y_test, y_pred)
     
     logger.info(f"Model accuracy: {accuracy:.4f}")
-    logger.info("Classification Report:")
+    logger.info("Classification Report (Test Set):")
     logger.info("\n" + classification_report(y_test, y_pred))
     
     return {
@@ -130,14 +130,17 @@ def save_model_with_mlflow(model, X_train, config, metrics):
         # Log metrics
         mlflow.log_metric("accuracy", metrics['accuracy'])
         
-        # Log model
-        artifact_path = config.get('mlflow', {}).get('artifact_path', 'model')
+        # Log model with input example to auto-infer signature
         registered_model_name = config.get('mlflow', {}).get('registered_model_name', 'purchase_predictor_model')
+        
+        # Create input example from first few rows of training data
+        input_example = X_train.iloc[:3] if hasattr(X_train, 'iloc') else X_train[:3]
         
         mlflow.sklearn.log_model(
             sk_model=model,
-            artifact_path=artifact_path,
-            registered_model_name=registered_model_name
+            name="model",  # Use 'name' instead of deprecated 'artifact_path'
+            registered_model_name=registered_model_name,
+            input_example=input_example
         )
         
         # Get run ID for later use
