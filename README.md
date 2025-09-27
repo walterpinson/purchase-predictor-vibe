@@ -5,12 +5,15 @@ A complete Python project for training and deploying a binary classifier to Azur
 ## Features
 
 - **End-to-end MLOps pipeline** with Azure ML SDK v2 integration
+- **Advanced configuration management** with flexible data processing options
 - **Shared preprocessing utilities** for consistent data transformation across training and inference  
-- **MLFlow tracking** for experiment management and model lifecycle
+- **MLFlow tracking** with explicit schema support and warning elimination
 - **Secure configuration management** with environment variables and secrets handling
 - **Production-ready deployment** with Azure managed online endpoints
 - **Synthetic data generation** for development and testing
 - **Configurable model selection** (Random Forest, Logistic Regression)
+- **Robust missing data handling** with configurable strategies
+- **MLFlow-optimized data types** for seamless model deployment
 
 ## Overview
 
@@ -25,15 +28,33 @@ This project implements an end-to-end machine learning pipeline that:
 
 ## Preprocessing Architecture
 
-The project uses a **centralized preprocessing approach** to ensure consistency and eliminate code duplication:
+The project uses a **centralized, configuration-driven preprocessing approach** to ensure consistency and eliminate code duplication:
 
 ### Core Components
 
-- **`src/preprocessing.py`**: Contains the `PurchaseDataPreprocessor` class with standardized methods:
+- **`src/modules/preprocessing.py`**: Contains the `PurchaseDataPreprocessor` class with configurable methods:
   - `fit_transform_training_data()`: Fits preprocessing pipeline and transforms training data
   - `transform_test_data()`: Applies fitted transformations to test data  
   - `transform_inference_data()`: Transforms new data for real-time predictions
   - `load_fitted_preprocessor()`: Loads saved preprocessing pipeline for inference
+
+### Configuration-Driven Processing
+
+The preprocessor supports flexible configuration via `config.yaml`:
+
+```yaml
+data_processing:
+  handle_missing: "drop"        # Options: "drop", "impute"
+  use_float_types: true         # Use float64 for MLFlow compatibility
+  drop_threshold: 0.1           # Drop features with >10% missing values
+```
+
+**Key Features:**
+
+- **Missing Data Handling**: Configurable strategy for handling missing values
+- **MLFlow Optimization**: Uses float64 types to eliminate MLFlow integer schema warnings
+- **Production Robustness**: Handles missing data gracefully at inference time
+- **Type Consistency**: Ensures consistent data types across training and inference
 
 ### Benefits
 
@@ -41,6 +62,8 @@ The project uses a **centralized preprocessing approach** to ensure consistency 
 - **Maintainability**: Single source of truth for all preprocessing logic
 - **Reliability**: Eliminates synchronization issues between duplicate code
 - **Scalability**: Easy to add new preprocessing steps in one place
+- **Configuration Control**: Easy to modify processing behavior without code changes
+- **MLFlow Compatible**: Eliminates common MLFlow warnings and compatibility issues
 
 ### Integration
 
@@ -91,13 +114,15 @@ purchase-predictor-vibe/
 
 The model predicts user purchase preference based on these features:
 
-| Column | Type | Description | Example Values |
-|--------|------|-------------|----------------|
-| `price` | float | Product price in USD | 9.99, 15.00, 22.49 |
-| `user_rating` | integer | User rating (1-5) | 4, 2, 5, 3 |
-| `category` | string | Product category | electronics, books, clothes |
-| `previously_purchased` | string | Previous purchase history | yes, no |
-| `label` | integer | Target: 1=liked, 0=not liked | 1, 0 |
+| Column | Type | Description | Example Values | Processing |
+|--------|------|-------------|----------------|------------|
+| `price` | float64 | Product price in USD | 9.99, 15.00, 22.49 | Direct use |
+| `user_rating` | float64 | User rating (1-5) | 4.0, 2.0, 5.0, 3.0 | Convert to float64 |
+| `category` | string → float64 | Product category | electronics, books, clothes | Label encoded to float64 |
+| `previously_purchased` | string → float64 | Previous purchase history | yes, no | Binary encoded to 1.0, 0.0 |
+| `label` | integer | Target: 1=liked, 0=not liked | 1, 0 | Target variable |
+
+**Note**: All features are converted to float64 for MLFlow compatibility and robust missing value handling.
 
 ## Setup Instructions
 
@@ -148,6 +173,54 @@ The model predicts user purchase preference based on these features:
 
    **Note**: The `config.yaml` file references these environment variables using `${VARIABLE_NAME}` syntax, and the `piny` library automatically substitutes them at runtime.
 
+## Configuration
+
+### Data Processing Options
+
+Configure data preprocessing behavior in `config.yaml`:
+
+```yaml
+# Data Processing Configuration
+data_processing:
+  handle_missing: "drop"        # Options: "drop", "impute"
+  use_float_types: true         # Use float64 for MLFlow compatibility
+  drop_threshold: 0.1           # Drop features with >10% missing values
+```
+
+**Options Explained:**
+
+- **`handle_missing`**: Strategy for missing data
+  - `"drop"`: Remove rows with any missing values (recommended for clean data)
+  - `"impute"`: Fill missing values (future enhancement)
+- **`use_float_types`**: Data type configuration
+  - `true`: Use float64 for all features (eliminates MLFlow warnings)
+  - `false`: Use integer types where possible (more memory efficient)
+- **`drop_threshold`**: Feature selection threshold
+  - Drop features with more than this fraction of missing values
+
+### Model Configuration
+
+Configure model behavior:
+
+```yaml
+# Model Configuration
+model:
+  type: "random_forest"         # Options: "random_forest", "logistic_regression"
+  random_state: 42              # Random seed for reproducibility
+```
+
+### MLFlow Configuration
+
+Configure experiment tracking:
+
+```yaml
+# MLFlow Configuration
+mlflow:
+  experiment_name: "purchase_predictor"
+  run_name: "training_run"
+  registered_model_name: "purchase_predictor_model"
+```
+
 ## Usage
 
 ### Quick Start
@@ -178,8 +251,9 @@ python src/utilities/data_prep.py
 
 - Generates 500 synthetic samples with realistic distributions
 - Creates `train.csv` and `test.csv` in `sample_data/`
-- Preprocesses data and saves to `processed_data/`
-- Handles categorical encoding and feature engineering
+- Applies configurable preprocessing (missing data handling, type conversion)
+- Saves processed data to `processed_data/`
+- Logs data types and processing decisions for transparency
 
 #### 2. Model Training
 
@@ -188,10 +262,11 @@ python src/pipeline/train.py
 ```
 
 - Trains a Random Forest classifier (configurable)
-- Uses MLFlow for experiment tracking
+- Uses MLFlow for experiment tracking with explicit schema
+- Eliminates MLFlow integer schema warnings
 - Saves model locally and logs to MLFlow
 - Evaluates performance on test set
-- Outputs model accuracy and classification report
+- Outputs model accuracy and classification report with clear data size information
 
 #### 3. Model Registration
 
@@ -216,21 +291,36 @@ python src/pipeline/deploy.py
 - Configures endpoint settings
 - Tests deployment with sample data
 
-### Configuration Options
+### Advanced Configuration Options
 
-#### Model Configuration
+#### Model Settings
 
 In `config.yaml`, you can specify:
 
 - `model.type`: "random_forest" or "logistic_regression"
 - `model.random_state`: Random seed for reproducibility
 
-#### Deployment Configuration
+#### Deployment Settings
 
 - `deployment.endpoint_name`: Name for Azure ML endpoint
 - `deployment.deployment_name`: Name for model deployment
 - `deployment.instance_type`: VM size for endpoint
 - `deployment.instance_count`: Number of instances
+
+#### Data Processing Settings
+
+- `data_processing.handle_missing`: Strategy for missing values ("drop" or "impute")
+- `data_processing.use_float_types`: Use float64 for MLFlow compatibility
+- `data_processing.drop_threshold`: Threshold for dropping features with missing values
+
+**Recommended Settings for Production:**
+
+```yaml
+data_processing:
+  handle_missing: "drop"        # Clean, consistent data
+  use_float_types: true         # Eliminates MLFlow warnings
+  drop_threshold: 0.1           # Remove low-quality features
+```
 
 ## Making Predictions
 
@@ -296,6 +386,18 @@ curl -X POST "https://your-endpoint-uri.azure.com/score" \
 5. **Endpoint Not Responding**
    - Solution: Wait 5-10 minutes after deployment
    - Check endpoint status in Azure ML Studio
+
+6. **MLFlow Warnings About Integer Schemas**
+   - Solution: Ensure `data_processing.use_float_types: true` in config.yaml
+   - This eliminates integer schema inference warnings
+
+7. **Missing Data Handling Issues**
+   - Solution: Configure `data_processing.handle_missing` appropriately
+   - Use `"drop"` for clean synthetic data, consider `"impute"` for real-world data
+
+8. **Configuration Not Loading**
+   - Solution: Verify `.env.local` file exists with correct Azure credentials
+   - Check that `config.yaml` syntax is valid YAML
 
 ### Logs and Debugging
 
