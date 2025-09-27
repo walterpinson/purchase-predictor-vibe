@@ -322,7 +322,63 @@ data_processing:
   drop_threshold: 0.1           # Remove low-quality features
 ```
 
-## Making Predictions
+## Deployment Options
+
+### Option 1: Azure ML Managed Endpoint (Production)
+
+For production deployments with managed infrastructure:
+
+```bash
+python src/pipeline/deploy.py
+```
+
+This creates a managed online endpoint with:
+- Auto-scaling capabilities
+- Built-in monitoring and logging  
+- Authentication and security
+- High availability
+
+### Option 2: Local Inference Server (Development/Testing)
+
+For development, testing, or when Azure deployment isn't available:
+
+```bash
+python src/scripts/local_inference.py
+```
+
+This starts a Flask-based local server with:
+- REST API endpoints for predictions
+- Health checks and model information
+- Sample data testing
+- Interactive debugging capabilities
+
+**Local Server Endpoints:**
+- `GET /health` - Health check and status
+- `POST /predict` - Make predictions
+- `GET /info` - Model and API information  
+- `GET /test` - Test with sample data
+
+**Example Usage:**
+
+```bash
+# Start the local server
+python src/scripts/local_inference.py
+
+# Test with curl (in another terminal)
+curl -X POST http://localhost:5000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"data": [[25.99, 4, 0, 1], [150.00, 2, 1, 0]]}'
+
+# View model info
+curl http://localhost:5000/info
+
+# Quick test with sample data
+curl http://localhost:5000/test
+```
+
+**When to Use Each Option:**
+- **Azure ML Endpoint**: Production workloads, need scaling, enterprise security
+- **Local Server**: Development, testing, demos, cost-effective inference, Azure access issues
 
 Once deployed, use the REST API to make predictions:
 
