@@ -26,10 +26,16 @@ def load_data():
     """Load training and test data using shared preprocessing utilities."""
     logger.info("Loading training and test data...")
     
-    # Load configuration to get data paths
+    # Load configuration to get data paths and processing settings
     config = load_config()
     train_path = config.get('data', {}).get('train_path', 'sample_data/train.csv')
     test_path = config.get('data', {}).get('test_path', 'sample_data/test.csv')
+    
+    # Get data processing configuration
+    data_processing = config.get('data_processing', {})
+    handle_missing = data_processing.get('handle_missing', 'drop')
+    use_float_types = data_processing.get('use_float_types', True)
+    drop_threshold = data_processing.get('drop_threshold', 0.1)
     
     # Try to load processed data first
     processed_data = load_processed_data()
@@ -43,8 +49,14 @@ def load_data():
         train_df = pd.read_csv(train_path)
         test_df = pd.read_csv(test_path)
         
-        # Use shared preprocessor
-        preprocessor = PurchaseDataPreprocessor()
+        # Use shared preprocessor with configuration
+        preprocessor = PurchaseDataPreprocessor(
+            handle_missing=handle_missing,
+            use_float_types=use_float_types,
+            drop_threshold=drop_threshold
+        )
+        logger.info(f"Preprocessor configured: handle_missing={handle_missing}, use_float_types={use_float_types}")
+        
         X_train, y_train = preprocessor.fit_transform_training_data(train_df)
         X_test, y_test = preprocessor.transform_test_data(test_df)
         
@@ -130,17 +142,38 @@ def save_model_with_mlflow(model, X_train, config, metrics):
         # Log metrics
         mlflow.log_metric("accuracy", metrics['accuracy'])
         
-        # Log model with input example to auto-infer signature
+        # Log model with explicit schema definition
         registered_model_name = config.get('mlflow', {}).get('registered_model_name', 'purchase_predictor_model')
         
-        # Create input example from first few rows of training data
-        input_example = X_train.iloc[:3] if hasattr(X_train, 'iloc') else X_train[:3]
+        # Create input example ensuring float64 types for robustness
+        input_example = X_train.iloc[:3].copy() if hasattr(X_train, 'iloc') else X_train[:3].copy()
+        
+        # Ensure all columns are float64 to handle potential missing values
+        if hasattr(input_example, 'astype'):
+            input_example = input_example.astype('float64')
+        
+        # Create explicit signature to avoid warnings
+        from mlflow.types.schema import Schema, ColSpec
+        from mlflow.types import DataType
+        
+        # Define schema explicitly with float64 for all features
+        input_schema = Schema([
+            ColSpec(DataType.double, "price"),
+            ColSpec(DataType.double, "user_rating"), 
+            ColSpec(DataType.double, "category_encoded"),
+            ColSpec(DataType.double, "previously_purchased_encoded")
+        ])
+        
+        output_schema = Schema([ColSpec(DataType.long)])  # Binary classification output
+        
+        signature = mlflow.types.ModelSignature(inputs=input_schema, outputs=output_schema)
         
         mlflow.sklearn.log_model(
             sk_model=model,
-            name="model",  # Use 'name' instead of deprecated 'artifact_path'
+            name="model",
             registered_model_name=registered_model_name,
-            input_example=input_example
+            input_example=input_example,
+            signature=signature  # Explicit schema prevents inference warnings
         )
         
         # Get run ID for later use

@@ -15,10 +15,21 @@ logger = logging.getLogger(__name__)
 class PurchaseDataPreprocessor:
     """Handles all preprocessing operations for purchase prediction data."""
     
-    def __init__(self):
+    def __init__(self, handle_missing='drop', use_float_types=True, drop_threshold=0.1):
+        """
+        Initialize preprocessor with configurable options.
+        
+        Args:
+            handle_missing: 'drop' or 'impute' - how to handle missing values
+            use_float_types: Use float64 for encoded features (recommended for MLFlow)
+            drop_threshold: Drop features with more than this fraction of missing values
+        """
         self.le_category = LabelEncoder()
         self.feature_columns = ['price', 'user_rating', 'category_encoded', 'previously_purchased_encoded']
         self.target_column = 'label'
+        self.handle_missing = handle_missing
+        self.use_float_types = use_float_types
+        self.drop_threshold = drop_threshold
     
     def fit_transform_training_data(self, df):
         """
@@ -34,12 +45,34 @@ class PurchaseDataPreprocessor:
         logger.info("Fitting preprocessor on training data...")
         processed_df = df.copy()
         
+        # Handle missing data according to strategy
+        if self.handle_missing == 'drop':
+            initial_rows = len(processed_df)
+            processed_df = processed_df.dropna()
+            dropped_rows = initial_rows - len(processed_df)
+            
+            if dropped_rows > 0:
+                logger.info(f"Dropped {dropped_rows} rows with missing values ({dropped_rows/initial_rows*100:.1f}% of data)")
+        elif self.handle_missing == 'impute':
+            # Could add imputation logic here if needed in the future
+            logger.info("Imputation strategy not yet implemented, proceeding with existing data")
+        
         # Encode categorical variables - fit on training data
         processed_df['category_encoded'] = self.le_category.fit_transform(processed_df['category'])
         logger.info(f"Category encoder fitted with classes: {list(self.le_category.classes_)}")
         
         # Convert previously_purchased to binary
         processed_df['previously_purchased_encoded'] = processed_df['previously_purchased'].map({'yes': 1, 'no': 0})
+        
+        # Convert to appropriate types for MLFlow compatibility
+        if self.use_float_types:
+            processed_df['category_encoded'] = processed_df['category_encoded'].astype('float64')
+            processed_df['previously_purchased_encoded'] = processed_df['previously_purchased_encoded'].astype('float64')
+            processed_df['price'] = processed_df['price'].astype('float64')
+            processed_df['user_rating'] = processed_df['user_rating'].astype('float64')
+            logger.info("Using float64 types for MLFlow compatibility")
+        else:
+            logger.info("Using integer types for encoded features")
         
         # Save encoder for later use (training, inference, deployment)
         self._save_encoders()
@@ -59,11 +92,27 @@ class PurchaseDataPreprocessor:
         logger.info("Transforming test data using fitted preprocessor...")
         processed_df = df.copy()
         
+        # Handle missing data consistently with training
+        if self.handle_missing == 'drop':
+            initial_rows = len(processed_df)
+            processed_df = processed_df.dropna()
+            dropped_rows = initial_rows - len(processed_df)
+            
+            if dropped_rows > 0:
+                logger.warning(f"Dropped {dropped_rows} test rows with missing values")
+        
         # Use already fitted encoder (no fitting on test data)
         processed_df['category_encoded'] = self.le_category.transform(processed_df['category'])
         
         # Convert previously_purchased to binary
         processed_df['previously_purchased_encoded'] = processed_df['previously_purchased'].map({'yes': 1, 'no': 0})
+        
+        # Apply same type conversions as training
+        if self.use_float_types:
+            processed_df['category_encoded'] = processed_df['category_encoded'].astype('float64')
+            processed_df['previously_purchased_encoded'] = processed_df['previously_purchased_encoded'].astype('float64')
+            processed_df['price'] = processed_df['price'].astype('float64')
+            processed_df['user_rating'] = processed_df['user_rating'].astype('float64')
         
         return self._extract_features_target(processed_df)
     
@@ -80,9 +129,25 @@ class PurchaseDataPreprocessor:
         logger.info("Transforming inference data...")
         processed_df = df.copy()
         
+        # Handle missing data consistently
+        if self.handle_missing == 'drop':
+            initial_rows = len(processed_df)
+            processed_df = processed_df.dropna()
+            dropped_rows = initial_rows - len(processed_df)
+            
+            if dropped_rows > 0:
+                logger.warning(f"Dropped {dropped_rows} inference rows with missing values")
+        
         # Use saved encoder
         processed_df['category_encoded'] = self.le_category.transform(processed_df['category'])
         processed_df['previously_purchased_encoded'] = processed_df['previously_purchased'].map({'yes': 1, 'no': 0})
+        
+        # Apply consistent type conversions
+        if self.use_float_types:
+            processed_df['category_encoded'] = processed_df['category_encoded'].astype('float64')
+            processed_df['previously_purchased_encoded'] = processed_df['previously_purchased_encoded'].astype('float64')
+            processed_df['price'] = processed_df['price'].astype('float64')
+            processed_df['user_rating'] = processed_df['user_rating'].astype('float64')
         
         # Return only features (no target for inference)
         return processed_df[self.feature_columns]

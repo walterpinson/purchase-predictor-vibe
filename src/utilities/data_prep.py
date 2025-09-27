@@ -102,6 +102,12 @@ def main():
     test_path = config.get('data', {}).get('test_path', 'sample_data/test.csv')
     processed_data_dir = config.get('data', {}).get('processed_data_dir', 'processed_data')
     
+    # Get data processing configuration
+    data_processing = config.get('data_processing', {})
+    handle_missing = data_processing.get('handle_missing', 'drop')
+    use_float_types = data_processing.get('use_float_types', True)
+    drop_threshold = data_processing.get('drop_threshold', 0.1)
+    
     # Extract directory paths
     data_dir = os.path.dirname(train_path)
     processed_dir = processed_data_dir
@@ -120,14 +126,21 @@ def main():
     # Save raw CSV files
     train_path, test_path = save_raw_data(train_data, test_data, data_dir)
     
-    # Preprocess data using shared preprocessor
-    preprocessor = PurchaseDataPreprocessor()
+    # Preprocess data using shared preprocessor with configuration
+    preprocessor = PurchaseDataPreprocessor(
+        handle_missing=handle_missing,
+        use_float_types=use_float_types,
+        drop_threshold=drop_threshold
+    )
+    logger.info(f"Preprocessor configured: handle_missing={handle_missing}, use_float_types={use_float_types}")
+    
     X_train, y_train = preprocessor.fit_transform_training_data(train_data)
     X_test, y_test = preprocessor.transform_test_data(test_data)
     
     # Display data info
     logger.info(f"Training data shape: {X_train.shape}")
     logger.info(f"Test data shape: {X_test.shape}")
+    logger.info(f"Data types: {X_train.dtypes.to_dict()}")
     logger.info(f"Label distribution in training: {y_train.value_counts().to_dict()}")
     logger.info(f"Label distribution in test: {y_test.value_counts().to_dict()}")
     
@@ -149,6 +162,7 @@ def main():
     print(train_data.head())
     print("\nSample processed features:")
     print(X_train.head())
+    print(f"\nProcessed feature types: {X_train.dtypes.to_dict()}")
 
 if __name__ == "__main__":
     main()

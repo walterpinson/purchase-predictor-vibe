@@ -42,6 +42,12 @@ data:
     - "previously_purchased_encoded"
   target_column: "label"
 
+# Data Processing Configuration
+data_processing:
+  handle_missing: "drop"        # Options: "drop", "impute"
+  use_float_types: true         # Use float64 for MLFlow compatibility
+  drop_threshold: 0.1           # Drop features with >10% missing values
+
 # Model Artifacts Configuration
 artifacts:
   models_dir: "models"
