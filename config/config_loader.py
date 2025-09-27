@@ -41,11 +41,42 @@ def load_config(config_file=None, env_file=None):
     try:
         # Use piny to load YAML with automatic environment variable substitution
         config = YamlLoader(path=str(config_file)).load()
+        
+        # Fallback: if piny didn't substitute, do it manually
+        config = _manual_env_substitution(config)
+        
         return config
     except FileNotFoundError:
         raise FileNotFoundError(f"{config_file} not found. Please create it with your configuration.")
     except Exception as e:
         raise ValueError(f"Error loading configuration from {config_file}: {str(e)}")
+
+
+def _manual_env_substitution(obj):
+    """
+    Manually substitute environment variables in configuration if piny failed.
+    
+    Args:
+        obj: Configuration object (dict, list, or string)
+    
+    Returns:
+        Configuration object with environment variables substituted
+    """
+    import re
+    
+    if isinstance(obj, dict):
+        return {key: _manual_env_substitution(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [_manual_env_substitution(item) for item in obj]
+    elif isinstance(obj, str):
+        # Look for ${VARIABLE_NAME} patterns
+        def replace_env_var(match):
+            var_name = match.group(1)
+            return os.environ.get(var_name, match.group(0))  # Return original if not found
+        
+        return re.sub(r'\$\{([^}]+)\}', replace_env_var, obj)
+    else:
+        return obj
 
 
 def validate_azure_config(config):

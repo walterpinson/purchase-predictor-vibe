@@ -20,26 +20,14 @@ logger = logging.getLogger(__name__)
 
 def get_azure_ml_client(config):
     """Create and return Azure ML client."""
-    # Debug: Check if environment variables are properly loaded
-    logger.info("Checking Azure configuration...")
-    logger.info(f"Config azure section: {config.get('azure', {})}")
-    
     subscription_id = config['azure']['subscription_id']
     resource_group = config['azure']['resource_group']
     workspace_name = config['azure']['workspace_name']
     
-    # Debug: Log the actual values (be careful not to log in production)
-    logger.info(f"Subscription ID (first 8 chars): {subscription_id[:8]}...")
-    logger.info(f"Resource Group: {resource_group}")
-    logger.info(f"Workspace Name: {workspace_name}")
-    
-    # Validate that variables are not the template strings
-    if subscription_id.startswith('${') and subscription_id.endswith('}'):
-        raise ValueError(f"Environment variable substitution failed for subscription_id: {subscription_id}")
-    if resource_group.startswith('${') and resource_group.endswith('}'):
-        raise ValueError(f"Environment variable substitution failed for resource_group: {resource_group}")
-    if workspace_name.startswith('${') and workspace_name.endswith('}'):
-        raise ValueError(f"Environment variable substitution failed for workspace_name: {workspace_name}")
+    # Validate that variables are properly substituted
+    for name, value in [('subscription_id', subscription_id), ('resource_group', resource_group), ('workspace_name', workspace_name)]:
+        if value.startswith('${') and value.endswith('}'):
+            raise ValueError(f"Environment variable substitution failed for {name}: {value}")
     
     credential = DefaultAzureCredential()
     
@@ -58,18 +46,14 @@ def get_latest_mlflow_run(config):
     # Get run ID file path from config
     run_id_file = config.get('artifacts', {}).get('run_id_file', 'models/run_id.txt')
     
-    # Try to read run ID from file first
-    if os.path.exists(run_id_file):
-        with open(run_id_file, 'r') as f:
-            run_id = f.read().strip()
-        logger.info(f"Found run ID from file: {run_id}")
-        return run_id
-    
-    # Otherwise, get the latest run from MLFlow
+    # Try to get the latest run from MLFlow first (more reliable)
     try:
         experiment_name = config.get('mlflow', {}).get('experiment_name', 'purchase_predictor')
+        logger.info(f"Looking for latest run in experiment: {experiment_name}")
+        
         experiment = mlflow.get_experiment_by_name(experiment_name)
         if experiment:
+            logger.info(f"Found experiment: {experiment.experiment_id}")
             runs = mlflow.search_runs(
                 experiment_ids=[experiment.experiment_id],
                 order_by=["start_time DESC"],
@@ -78,11 +62,23 @@ def get_latest_mlflow_run(config):
             if not runs.empty:
                 run_id = runs.iloc[0]['run_id']
                 logger.info(f"Found latest run ID from MLFlow: {run_id}")
+                logger.info(f"Run status: {runs.iloc[0]['status']}")
+                logger.info(f"Run start time: {runs.iloc[0]['start_time']}")
                 return run_id
+        else:
+            logger.warning(f"Experiment '{experiment_name}' not found")
     except Exception as e:
         logger.warning(f"Could not retrieve run from MLFlow: {e}")
     
-    raise ValueError("No MLFlow run found. Please run src/pipeline/train.py first.")
+    # Fallback to reading from file
+    if os.path.exists(run_id_file):
+        with open(run_id_file, 'r') as f:
+            run_id = f.read().strip()
+        logger.info(f"Using run ID from file: {run_id}")
+        logger.warning("This run ID may be stale. Consider running training again.")
+        return run_id
+    
+    raise ValueError("No MLFlow run found. Please run src/pipeline/train.py first to create a new training run.")
 
 def register_model(ml_client, config):
     """Register the MLFlow model with Azure ML."""
@@ -143,13 +139,6 @@ def main():
     
     # Load configuration
     config = load_config()
-    
-    # Debug: Test environment variables
-    import os
-    logger.info("Environment variables check:")
-    logger.info(f"AZURE_SUBSCRIPTION_ID exists: {'AZURE_SUBSCRIPTION_ID' in os.environ}")
-    logger.info(f"AZURE_RESOURCE_GROUP exists: {'AZURE_RESOURCE_GROUP' in os.environ}")
-    logger.info(f"AZURE_WORKSPACE_NAME exists: {'AZURE_WORKSPACE_NAME' in os.environ}")
     
     # Get models directory from config
     models_dir = config.get('artifacts', {}).get('models_dir', 'models')
