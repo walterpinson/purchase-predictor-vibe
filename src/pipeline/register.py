@@ -20,9 +20,26 @@ logger = logging.getLogger(__name__)
 
 def get_azure_ml_client(config):
     """Create and return Azure ML client."""
+    # Debug: Check if environment variables are properly loaded
+    logger.info("Checking Azure configuration...")
+    logger.info(f"Config azure section: {config.get('azure', {})}")
+    
     subscription_id = config['azure']['subscription_id']
     resource_group = config['azure']['resource_group']
     workspace_name = config['azure']['workspace_name']
+    
+    # Debug: Log the actual values (be careful not to log in production)
+    logger.info(f"Subscription ID (first 8 chars): {subscription_id[:8]}...")
+    logger.info(f"Resource Group: {resource_group}")
+    logger.info(f"Workspace Name: {workspace_name}")
+    
+    # Validate that variables are not the template strings
+    if subscription_id.startswith('${') and subscription_id.endswith('}'):
+        raise ValueError(f"Environment variable substitution failed for subscription_id: {subscription_id}")
+    if resource_group.startswith('${') and resource_group.endswith('}'):
+        raise ValueError(f"Environment variable substitution failed for resource_group: {resource_group}")
+    if workspace_name.startswith('${') and workspace_name.endswith('}'):
+        raise ValueError(f"Environment variable substitution failed for workspace_name: {workspace_name}")
     
     credential = DefaultAzureCredential()
     
@@ -77,10 +94,9 @@ def register_model(ml_client, config):
     # Get model configuration
     model_name = config.get('model_registration', {}).get('name', 'purchase-predictor-model')
     model_description = config.get('model_registration', {}).get('description', 'Binary classifier for purchase prediction')
-    artifact_path = config.get('mlflow', {}).get('artifact_path', 'model')
     
-    # Create model path (MLFlow format)
-    model_path = f"runs:/{run_id}/{artifact_path}"
+    # Create model path (MLFlow format) - using "model" as the standard artifact path
+    model_path = f"runs:/{run_id}/model"
     
     # Create model entity
     model = Model(
@@ -127,6 +143,13 @@ def main():
     
     # Load configuration
     config = load_config()
+    
+    # Debug: Test environment variables
+    import os
+    logger.info("Environment variables check:")
+    logger.info(f"AZURE_SUBSCRIPTION_ID exists: {'AZURE_SUBSCRIPTION_ID' in os.environ}")
+    logger.info(f"AZURE_RESOURCE_GROUP exists: {'AZURE_RESOURCE_GROUP' in os.environ}")
+    logger.info(f"AZURE_WORKSPACE_NAME exists: {'AZURE_WORKSPACE_NAME' in os.environ}")
     
     # Get models directory from config
     models_dir = config.get('artifacts', {}).get('models_dir', 'models')
