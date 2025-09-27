@@ -155,6 +155,7 @@ def save_model_with_mlflow(model, X_train, config, metrics):
         # Create explicit signature to avoid warnings
         from mlflow.types.schema import Schema, ColSpec
         from mlflow.types import DataType
+        from mlflow.models import ModelSignature
         
         # Define schema explicitly with float64 for all features
         input_schema = Schema([
@@ -166,7 +167,7 @@ def save_model_with_mlflow(model, X_train, config, metrics):
         
         output_schema = Schema([ColSpec(DataType.long)])  # Binary classification output
         
-        signature = mlflow.types.ModelSignature(inputs=input_schema, outputs=output_schema)
+        signature = ModelSignature(inputs=input_schema, outputs=output_schema)
         
         mlflow.sklearn.log_model(
             sk_model=model,
