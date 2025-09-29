@@ -25,7 +25,7 @@ echo "📝 Registering model with Azure ML..."
 python src/pipeline/register.py
 
 echo "🚢 Deploying model to endpoint..."
-python src/pipeline/deploy.py
+python src/pipeline/deploy_managed_endpoint.py
 
 echo "✅ Pipeline completed successfully!"
 echo ""

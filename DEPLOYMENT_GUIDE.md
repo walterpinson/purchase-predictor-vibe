@@ -4,22 +4,26 @@ This project provides three different deployment approaches for your purchase pr
 
 ## 🚀 **Deployment Options**
 
-### 1. **Managed Online Endpoint** (`run_pipeline.sh`)
-**Best for:** Production Azure ML deployments with full managed infrastructure
+### 1. **Azure ML Studio Managed Endpoint** (`run_pipeline.sh`)
+**Best for:** Production Azure ML Studio hosted inference server (REQUIRED)
 
 ```bash
 ./scripts/run_pipeline.sh
 ```
 
 **Features:**
-- ✅ Fully managed Azure ML endpoint
+- ✅ **Azure ML Studio hosted inference server** 
+- ✅ Fully managed endpoint infrastructure
 - ✅ Auto-scaling and load balancing
-- ✅ Built-in monitoring and logging
+- ✅ Built-in monitoring and logging in Azure ML Studio
+- ✅ Production-ready REST API
 - ✅ Azure security and compliance
 - ⚠️ Requires proper resource provider registration
 - ⚠️ May have subscription tier limitations
 
-**Uses:** `src/pipeline/deploy.py`
+**Uses:** `src/pipeline/deploy_managed_endpoint.py`
+
+**This is the REQUIRED approach for Azure ML Studio hosted deployment!**
 
 ---
 
@@ -72,17 +76,21 @@ curl http://localhost:5000/test
 
 ## 🎯 **Recommendations**
 
-### **For Production:** 
-- Try `run_pipeline.sh` first (managed endpoint)
-- If you encounter resource provider issues, use `run_pipeline_local.sh`
+### **For Production (Azure ML Studio Hosted - REQUIRED):**
+
+- **Primary:** `run_pipeline.sh` (Azure ML Studio managed endpoint)
+- **Backup:** `run_pipeline_local.sh` (if resource provider issues occur)
 
 ### **For Development/Testing:**
-- Use `run_pipeline_local.sh` (fastest and most reliable)
-- Use `run_pipeline_aci.sh` for container testing
 
-### **For Azure ML Integration:**
-- All approaches register your model in Azure ML Studio
-- `run_pipeline_local.sh` provides the best balance of features and reliability
+- Use `run_pipeline_local.sh` (fastest and most reliable)
+- Use `run_pipeline_aci.sh` (for container testing)
+
+### **For Azure ML Studio Integration:**
+
+- **`run_pipeline.sh`** creates actual Azure ML Studio hosted inference server
+- **`run_pipeline_local.sh`** provides Azure ML integration with local server
+- **`run_pipeline_aci.sh`** provides containerized deployment in Azure ML
 
 ---
 
