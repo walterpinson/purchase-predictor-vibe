@@ -60,29 +60,55 @@ def create_or_update_endpoint(ml_client, config):
     
     logger.info(f"Creating/updating endpoint: {endpoint_name}")
     
-    # Check if endpoint exists
+    # Check if endpoint exists and its state
     try:
-        endpoint = ml_client.online_endpoints.get(endpoint_name)
-        logger.info(f"Endpoint {endpoint_name} already exists")
-        return endpoint
-    except Exception:
-        logger.info(f"Creating new endpoint: {endpoint_name}")
+        existing_endpoint = ml_client.online_endpoints.get(endpoint_name)
+        logger.info(f"Found existing endpoint: {existing_endpoint.name}")
+        logger.info(f"Endpoint provisioning state: {existing_endpoint.provisioning_state}")
         
-        # Create new endpoint
-        endpoint = ManagedOnlineEndpoint(
-            name=endpoint_name,
-            description="Purchase predictor model endpoint",
-            auth_mode="key",
-            tags={
-                "project": "purchase-predictor",
-                "environment": "production"
-            }
-        )
+        # If endpoint is in a failed state, delete it
+        if existing_endpoint.provisioning_state in ["Failed", "Deleting", "Canceled"]:
+            logger.warning(f"Endpoint is in {existing_endpoint.provisioning_state} state. Deleting and recreating...")
+            try:
+                ml_client.online_endpoints.begin_delete(endpoint_name).result()
+                logger.info("Successfully deleted corrupted endpoint")
+            except Exception as delete_error:
+                logger.warning(f"Error deleting endpoint (continuing anyway): {delete_error}")
+            
+            # Create new endpoint
+            return create_new_endpoint(ml_client, endpoint_name)
         
-        # Create the endpoint
-        endpoint = ml_client.online_endpoints.begin_create_or_update(endpoint).result()
-        logger.info(f"Endpoint {endpoint_name} created successfully")
-        return endpoint
+        elif existing_endpoint.provisioning_state == "Succeeded":
+            logger.info(f"Endpoint {endpoint_name} already exists and is healthy")
+            return existing_endpoint
+        else:
+            logger.info(f"Endpoint exists with state: {existing_endpoint.provisioning_state}")
+            return existing_endpoint
+            
+    except Exception as e:
+        logger.info(f"Endpoint {endpoint_name} does not exist. Creating new one.")
+        return create_new_endpoint(ml_client, endpoint_name)
+
+def create_new_endpoint(ml_client, endpoint_name):
+    """Create a new endpoint with a clean state."""
+    logger.info(f"Creating new endpoint: {endpoint_name}")
+    
+    # Create new endpoint
+    endpoint = ManagedOnlineEndpoint(
+        name=endpoint_name,
+        description="Purchase predictor model endpoint",
+        auth_mode="key",
+        tags={
+            "project": "purchase-predictor",
+            "environment": "production",
+            "created": time.strftime("%Y-%m-%d_%H-%M-%S")
+        }
+    )
+    
+    # Create the endpoint
+    endpoint = ml_client.online_endpoints.begin_create_or_update(endpoint).result()
+    logger.info(f"Endpoint {endpoint_name} created successfully")
+    return endpoint
 
 def create_environment(ml_client, config):
     """Create custom environment for the deployment."""
@@ -113,7 +139,7 @@ def create_deployment(ml_client, config, registration_info, endpoint, environmen
     # Get model reference
     model_reference = f"{registration_info['model_name']}:{registration_info['model_version']}"
     
-    # Create deployment
+    # Create deployment with minimal configuration
     deployment = ManagedOnlineDeployment(
         name=deployment_name,
         endpoint_name=endpoint_name,
@@ -124,26 +150,7 @@ def create_deployment(ml_client, config, registration_info, endpoint, environmen
             scoring_script="src/scripts/score.py"
         ),
         instance_type="Standard_DS2_v2",
-        instance_count=1,
-        request_settings={
-            "request_timeout_ms": 90000,
-            "max_concurrent_requests_per_instance": 1,
-            "max_queue_wait_ms": 500
-        },
-        liveness_probe={
-            "failure_threshold": 30,
-            "success_threshold": 1,
-            "timeout": 2,
-            "period": 10,
-            "initial_delay": 10
-        },
-        readiness_probe={
-            "failure_threshold": 10,
-            "success_threshold": 1,
-            "timeout": 10,
-            "period": 10,
-            "initial_delay": 10
-        }
+        instance_count=1
     )
     
     # Deploy the model

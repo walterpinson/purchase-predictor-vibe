@@ -24,8 +24,8 @@ model_registration:
 
 # Deployment Configuration
 deployment:
-  endpoint_name: "purchase-predictor-endpoint"
-  deployment_name: "purchase-predictor-deployment"
+  endpoint_name: "purchase-predictor-endpoint-v2"
+  deployment_name: "purchase-predictor-deployment-v2"
   environment_name: "purchase-predictor-env"
   instance_type: "Standard_DS2_v2"
   instance_count: 1

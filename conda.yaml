@@ -17,6 +17,9 @@ dependencies:
     - azure-identity>=1.7.0
     - python-dotenv>=1.0.0
     - piny>=1.1.0
+    # Azure SDK dependencies
+    - typing-extensions>=4.0.0
+    - msrest>=0.6.0
     # Local inference server dependencies
     - flask>=2.3.0
     - flask-cors>=4.0.0
