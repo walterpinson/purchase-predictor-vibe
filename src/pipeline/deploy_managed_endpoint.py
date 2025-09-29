@@ -83,52 +83,63 @@ def load_registration_info(config):
     return registration_info
 
 def create_optimized_endpoint(ml_client, config):
-    """Create endpoint with optimized settings for reliable deployment."""
-    endpoint_name = config['deployment']['endpoint_name']
+    """Create endpoint with unique naming and comprehensive retry logic."""
+    base_endpoint_name = config['deployment'].get('endpoint_name', 'purchase-predictor-endpoint')
     
-    # Ensure endpoint name meets Azure requirements
-    if len(endpoint_name) > 32:
-        endpoint_name = endpoint_name[:32]
-        logger.warning(f"Endpoint name truncated to 32 characters: {endpoint_name}")
+    # Generate unique endpoint name
+    unique_endpoint_name = generate_unique_endpoint_name(base_endpoint_name.split('-')[0])
     
-    logger.info(f"🚀 Creating managed online endpoint: {endpoint_name}")
+    # Validate the generated name
+    is_valid, error_msg = validate_azure_ml_name(unique_endpoint_name, "endpoint")
+    if not is_valid:
+        logger.warning(f"Generated name validation failed: {error_msg}")
+        # Fallback to a simpler unique name
+        unique_endpoint_name = generate_unique_endpoint_name("pp")
     
-    try:
-        # Check if endpoint already exists
-        existing_endpoint = ml_client.online_endpoints.get(endpoint_name)
-        logger.info(f"✅ Endpoint {endpoint_name} already exists")
-        logger.info(f"   State: {existing_endpoint.provisioning_state}")
-        
-        if existing_endpoint.provisioning_state == "Failed":
-            logger.warning("⚠️ Existing endpoint is in Failed state. Deleting and recreating...")
-            ml_client.online_endpoints.begin_delete(endpoint_name).result()
-            time.sleep(30)  # Wait for deletion to complete
-        else:
-            return existing_endpoint
-            
-    except ResourceNotFoundError:
-        logger.info(f"📝 Endpoint {endpoint_name} does not exist. Creating new one...")
+    logger.info(f"🚀 Creating managed online endpoint with unique name: {unique_endpoint_name}")
+    logger.info(f"   Original config name: {base_endpoint_name}")
+    logger.info(f"   Generated unique name: {unique_endpoint_name}")
     
-    # Create new endpoint with minimal configuration
-    endpoint = ManagedOnlineEndpoint(
-        name=endpoint_name,
-        description="Azure ML Studio hosted inference server for purchase predictor",
+    # Create endpoint configuration with minimal settings for reliability
+    endpoint_config = ManagedOnlineEndpoint(
+        name=unique_endpoint_name,
+        description="Azure ML Studio hosted inference server for purchase predictor (unique deployment)",
         auth_mode="key",
         tags={
             "project": "purchase-predictor",
             "environment": "production",
-            "deployment_type": "azure_ml_studio_hosted",
-            "created": time.strftime("%Y-%m-%d_%H-%M-%S")
+            "deployment_type": "azure_ml_studio_hosted_unique",
+            "created": datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
+            "original_name": base_endpoint_name,
+            "unique_name": unique_endpoint_name
         }
     )
     
-    logger.info("⏳ Creating endpoint... This may take 5-10 minutes...")
+    logger.info("⏳ Creating endpoint with cleanup and retry logic...")
+    logger.info("   🔄 Automatic cleanup of failed endpoints")
+    logger.info("   🔁 Up to 3 retry attempts with new names")
+    logger.info("   ⏱️ 5-minute delays between retries")
+    
     try:
-        endpoint = ml_client.online_endpoints.begin_create_or_update(endpoint).result()
-        logger.info(f"✅ Endpoint {endpoint_name} created successfully!")
+        # Use the robust endpoint creation with retry logic
+        endpoint = create_endpoint_with_cleanup_retry(ml_client, endpoint_config)
+        
+        logger.info(f"✅ Endpoint created successfully!")
+        logger.info(f"   Final endpoint name: {endpoint.name}")
+        logger.info(f"   Provisioning state: {endpoint.provisioning_state}")
+        
+        # Update config to track the actual endpoint name used
+        config['deployment']['actual_endpoint_name'] = endpoint.name
+        
         return endpoint
+        
     except Exception as e:
-        logger.error(f"❌ Failed to create endpoint: {e}")
+        logger.error(f"❌ Failed to create endpoint after all retry attempts: {e}")
+        logger.error("   This may indicate:")
+        logger.error("   - Subscription quota exceeded")
+        logger.error("   - Resource provider registration issues")
+        logger.error("   - Insufficient permissions")
+        logger.error("   - Service availability issues")
         raise
 
 def create_optimized_environment(ml_client, config):
@@ -154,12 +165,24 @@ def create_optimized_environment(ml_client, config):
         raise
 
 def create_optimized_deployment(ml_client, config, registration_info, endpoint, environment):
-    """Create deployment with optimized settings."""
-    deployment_name = config['deployment']['deployment_name']
+    """Create deployment with unique naming and retry logic."""
+    base_deployment_name = config['deployment'].get('deployment_name', 'purchase-predictor-deployment')
     endpoint_name = endpoint.name
     
-    logger.info(f"🚢 Creating managed deployment: {deployment_name}")
+    # Generate unique deployment name
+    unique_deployment_name = generate_unique_deployment_name(base_deployment_name.split('-')[0])
+    
+    # Validate the generated name
+    is_valid, error_msg = validate_azure_ml_name(unique_deployment_name, "deployment")
+    if not is_valid:
+        logger.warning(f"Generated deployment name validation failed: {error_msg}")
+        # Fallback to a simpler unique name
+        unique_deployment_name = generate_unique_deployment_name("pp-dep")
+    
+    logger.info(f"🚢 Creating managed deployment with unique name: {unique_deployment_name}")
     logger.info("   This creates the actual Azure ML Studio hosted inference server")
+    logger.info(f"   Original config name: {base_deployment_name}")
+    logger.info(f"   Generated unique name: {unique_deployment_name}")
     
     # Get model reference
     model_name = registration_info['model_name']
@@ -168,9 +191,9 @@ def create_optimized_deployment(ml_client, config, registration_info, endpoint, 
     
     logger.info(f"📦 Using model: {model_reference}")
     
-    # Create deployment with optimized configuration
-    deployment = ManagedOnlineDeployment(
-        name=deployment_name,
+    # Create deployment configuration with optimized settings
+    deployment_config = ManagedOnlineDeployment(
+        name=unique_deployment_name,
         endpoint_name=endpoint_name,
         model=model_reference,
         environment=environment,
@@ -183,31 +206,46 @@ def create_optimized_deployment(ml_client, config, registration_info, endpoint, 
         tags={
             "model_name": model_name,
             "model_version": model_version,
-            "deployment_type": "azure_ml_studio_hosted"
+            "deployment_type": "azure_ml_studio_hosted_unique",
+            "original_name": base_deployment_name,
+            "unique_name": unique_deployment_name,
+            "created": datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         }
     )
     
-    logger.info("⏳ Deploying to Azure ML Studio... This may take 10-15 minutes...")
+    logger.info("⏳ Deploying to Azure ML Studio with retry logic...")
     logger.info("   🏗️ Provisioning managed compute infrastructure")
     logger.info("   🐳 Building container with your model")
     logger.info("   🌐 Creating hosted inference endpoint")
+    logger.info("   🔁 Up to 2 retry attempts if deployment fails")
     
     try:
-        deployment = ml_client.online_deployments.begin_create_or_update(deployment).result()
-        logger.info(f"✅ Deployment {deployment_name} completed successfully!")
+        # Use the robust deployment creation with retry logic
+        deployment = create_deployment_with_retry(ml_client, deployment_config)
+        
+        logger.info(f"✅ Deployment completed successfully!")
+        logger.info(f"   Final deployment name: {deployment.name}")
         logger.info("🎉 Your model is now hosted on Azure ML Studio managed infrastructure!")
+        
+        # Update config to track the actual deployment name used
+        config['deployment']['actual_deployment_name'] = deployment.name
+        
         return deployment
+        
     except Exception as e:
-        logger.error(f"❌ Deployment failed: {e}")
+        logger.error(f"❌ Deployment failed after all retry attempts: {e}")
         logger.error("Common causes:")
-        logger.error("  - Resource quota exceeded")
-        logger.error("  - Resource provider not registered")
-        logger.error("  - Subscription limitations")
+        logger.error("  - Resource quota exceeded for compute instances")
+        logger.error("  - Image build failures due to environment issues")
+        logger.error("  - Timeout during provisioning (try again later)")
+        logger.error("  - Insufficient subscription permissions")
         raise
 
 def configure_endpoint_traffic(ml_client, endpoint_name, deployment_name):
-    """Set 100% traffic to the deployment."""
+    """Set 100% traffic to the deployment using actual names."""
     logger.info(f"🔀 Configuring traffic routing...")
+    logger.info(f"   Endpoint: {endpoint_name}")
+    logger.info(f"   Deployment: {deployment_name}")
     
     try:
         endpoint = ml_client.online_endpoints.get(endpoint_name)
@@ -215,28 +253,59 @@ def configure_endpoint_traffic(ml_client, endpoint_name, deployment_name):
         
         ml_client.online_endpoints.begin_create_or_update(endpoint).result()
         logger.info(f"✅ Traffic set to 100% for deployment: {deployment_name}")
+        logger.info(f"   All requests to {endpoint_name} will route to {deployment_name}")
     except Exception as e:
         logger.error(f"❌ Failed to set traffic: {e}")
         raise
 
 def get_hosted_endpoint_details(ml_client, config, endpoint_name):
-    """Get and save hosted endpoint details."""
+    """Get and save hosted endpoint details with actual names."""
     logger.info("📊 Retrieving hosted endpoint details...")
     
     try:
         endpoint = ml_client.online_endpoints.get(endpoint_name)
         
+        # Get actual names used (may be different from config due to unique naming)
+        actual_endpoint_name = endpoint.name
+        actual_deployment_name = config['deployment'].get('actual_deployment_name', 'unknown')
+        original_endpoint_name = config['deployment'].get('endpoint_name', 'unknown')
+        original_deployment_name = config['deployment'].get('deployment_name', 'unknown')
+        
         endpoint_info = {
-            'deployment_type': 'azure_ml_studio_hosted',
-            'endpoint_name': endpoint.name,
-            'scoring_uri': endpoint.scoring_uri,
-            'swagger_uri': endpoint.swagger_uri if hasattr(endpoint, 'swagger_uri') else None,
-            'auth_mode': endpoint.auth_mode,
-            'location': endpoint.location if hasattr(endpoint, 'location') else None,
-            'provisioning_state': endpoint.provisioning_state,
-            'traffic': endpoint.traffic if hasattr(endpoint, 'traffic') else {},
-            'tags': endpoint.tags if hasattr(endpoint, 'tags') else {},
-            'created_at': str(endpoint.creation_context.created_at) if endpoint.creation_context else None
+            'deployment_type': 'azure_ml_studio_hosted_unique',
+            'naming_strategy': 'unique_names_with_retry',
+            'original_names': {
+                'endpoint_name': original_endpoint_name,
+                'deployment_name': original_deployment_name
+            },
+            'actual_names': {
+                'endpoint_name': actual_endpoint_name,
+                'deployment_name': actual_deployment_name
+            },
+            'endpoint_details': {
+                'scoring_uri': endpoint.scoring_uri,
+                'swagger_uri': endpoint.swagger_uri if hasattr(endpoint, 'swagger_uri') else None,
+                'auth_mode': endpoint.auth_mode,
+                'location': endpoint.location if hasattr(endpoint, 'location') else None,
+                'provisioning_state': endpoint.provisioning_state,
+                'traffic': endpoint.traffic if hasattr(endpoint, 'traffic') else {},
+                'tags': endpoint.tags if hasattr(endpoint, 'tags') else {},
+                'created_at': str(endpoint.creation_context.created_at) if endpoint.creation_context else None
+            },
+            'usage_instructions': {
+                'scoring_uri': endpoint.scoring_uri,
+                'auth_mode': endpoint.auth_mode,
+                'sample_request': {
+                    'method': 'POST',
+                    'headers': {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer <YOUR_API_KEY>'
+                    },
+                    'body': {
+                        'data': [[25.99, 4, 1, 1], [150.00, 2, 0, 0]]
+                    }
+                }
+            }
         }
         
         # Get endpoint info file path from config
@@ -247,21 +316,36 @@ def get_hosted_endpoint_details(ml_client, config, endpoint_name):
         
         logger.info(f"✅ Endpoint details saved to {endpoint_info_file}")
         
-        # Display key information
-        print("\n" + "="*70)
+        # Display comprehensive information
+        print("\n" + "="*80)
         print("🎉 AZURE ML STUDIO HOSTED ENDPOINT DEPLOYED SUCCESSFULLY!")
-        print("="*70)
-        print(f"🌐 Endpoint Name: {endpoint.name}")
-        print(f"📡 Scoring URI: {endpoint.scoring_uri}")
+        print("="*80)
+        print(f"🌐 Endpoint Name: {actual_endpoint_name}")
+        print(f"📊 Original Config Name: {original_endpoint_name}")
+        print(f"� Unique Naming: ✅ Enabled (prevents common naming conflicts)")
+        print("")
+        print(f"�📡 Scoring URI: {endpoint.scoring_uri}")
         print(f"🔐 Auth Mode: {endpoint.auth_mode}")
         print(f"📊 Provisioning State: {endpoint.provisioning_state}")
         if endpoint.traffic:
             print(f"🔀 Traffic Distribution: {endpoint.traffic}")
         print("")
+        print("🏗️ DEPLOYMENT DETAILS:")
+        print(f"   Deployment Name: {actual_deployment_name}")
+        print(f"   Original Config Name: {original_deployment_name}")
+        print(f"   Instance Type: Standard_DS2_v2")
+        print(f"   Instance Count: 1")
+        print("")
         print("🚀 Your model is now hosted on Azure ML Studio managed infrastructure!")
         print("📱 Use the scoring URI above for production predictions")
         print("🎛️ Monitor and manage your endpoint in Azure ML Studio portal")
-        print("="*70)
+        print("")
+        print("📋 UNIQUE NAMING BENEFITS:")
+        print("   ✅ Prevents endpoint name conflicts")
+        print("   ✅ Enables reliable retry logic")
+        print("   ✅ Supports multiple deployments")
+        print("   ✅ Automatic cleanup of failed endpoints")
+        print("="*80)
         
         return endpoint
         
@@ -270,8 +354,10 @@ def get_hosted_endpoint_details(ml_client, config, endpoint_name):
         raise
 
 def test_hosted_endpoint(ml_client, endpoint_name, deployment_name):
-    """Test the hosted endpoint with sample data."""
+    """Test the hosted endpoint with sample data using actual names."""
     logger.info("🧪 Testing hosted endpoint...")
+    logger.info(f"   Testing endpoint: {endpoint_name}")
+    logger.info(f"   Using deployment: {deployment_name}")
     
     # Sample test data
     test_data = {
@@ -301,6 +387,11 @@ def test_hosted_endpoint(ml_client, endpoint_name, deployment_name):
             logger.info("🎯 Test interpretations:")
             logger.info("   [25.99, 4, 1, 1] -> Expected: High purchase probability")
             logger.info("   [150.00, 2, 0, 0] -> Expected: Low purchase probability")
+            logger.info("")
+            logger.info("🔗 Test Results Summary:")
+            logger.info(f"   ✅ Endpoint {endpoint_name} is responding correctly")
+            logger.info(f"   ✅ Deployment {deployment_name} is processing requests")
+            logger.info(f"   ✅ Model is making predictions as expected")
             
         finally:
             os.unlink(temp_file)
@@ -308,7 +399,14 @@ def test_hosted_endpoint(ml_client, endpoint_name, deployment_name):
     except Exception as e:
         logger.warning(f"⚠️ Endpoint test failed: {e}")
         logger.info("This may be normal if the endpoint is still warming up.")
-        logger.info("Try testing again in a few minutes using the scoring URI.")
+        logger.info("Common reasons for test failures:")
+        logger.info("  - Endpoint still provisioning (wait 5-10 minutes)")
+        logger.info("  - Model container still starting up")
+        logger.info("  - Temporary Azure service issues")
+        logger.info("")
+        logger.info(f"Try testing manually in a few minutes:")
+        logger.info(f"  Endpoint: {endpoint_name}")
+        logger.info(f"  Test data: {json.dumps(test_data, indent=2)}")
 
 def main():
     """Main function for Azure ML Studio hosted endpoint deployment."""

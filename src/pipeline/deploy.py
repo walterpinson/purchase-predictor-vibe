@@ -18,6 +18,13 @@ from azure.identity import DefaultAzureCredential
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from config.config_loader import load_config
+from src.utilities.endpoint_naming import (
+    generate_unique_endpoint_name,
+    generate_unique_deployment_name,
+    create_endpoint_with_cleanup_retry,
+    create_deployment_with_retry,
+    validate_azure_ml_name
+)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -55,39 +62,44 @@ def load_registration_info(config):
     return registration_info
 
 def create_or_update_endpoint(ml_client, config):
-    """Create or update the online endpoint."""
-    endpoint_name = config['deployment']['endpoint_name']
+    """Create or update the online endpoint with unique naming."""
+    base_endpoint_name = config['deployment'].get('endpoint_name', 'purchase-predictor-endpoint')
     
-    logger.info(f"Creating/updating endpoint: {endpoint_name}")
+    # Generate unique endpoint name
+    unique_endpoint_name = generate_unique_endpoint_name(base_endpoint_name.split('-')[0])
     
-    # Check if endpoint exists and its state
-    try:
-        existing_endpoint = ml_client.online_endpoints.get(endpoint_name)
-        logger.info(f"Found existing endpoint: {existing_endpoint.name}")
-        logger.info(f"Endpoint provisioning state: {existing_endpoint.provisioning_state}")
-        
-        # If endpoint is in a failed state, delete it
-        if existing_endpoint.provisioning_state in ["Failed", "Deleting", "Canceled"]:
-            logger.warning(f"Endpoint is in {existing_endpoint.provisioning_state} state. Deleting and recreating...")
-            try:
-                ml_client.online_endpoints.begin_delete(endpoint_name).result()
-                logger.info("Successfully deleted corrupted endpoint")
-            except Exception as delete_error:
-                logger.warning(f"Error deleting endpoint (continuing anyway): {delete_error}")
-            
-            # Create new endpoint
-            return create_new_endpoint(ml_client, endpoint_name)
-        
-        elif existing_endpoint.provisioning_state == "Succeeded":
-            logger.info(f"Endpoint {endpoint_name} already exists and is healthy")
-            return existing_endpoint
-        else:
-            logger.info(f"Endpoint exists with state: {existing_endpoint.provisioning_state}")
-            return existing_endpoint
-            
-    except Exception as e:
-        logger.info(f"Endpoint {endpoint_name} does not exist. Creating new one.")
-        return create_new_endpoint(ml_client, endpoint_name)
+    # Validate the generated name
+    is_valid, error_msg = validate_azure_ml_name(unique_endpoint_name, "endpoint")
+    if not is_valid:
+        logger.warning(f"Generated name validation failed: {error_msg}")
+        # Fallback to a simpler unique name
+        unique_endpoint_name = generate_unique_endpoint_name("pp")
+    
+    logger.info(f"Creating endpoint with unique naming:")
+    logger.info(f"   Original config: {base_endpoint_name}")
+    logger.info(f"   Generated unique: {unique_endpoint_name}")
+    
+    # Create endpoint configuration
+    endpoint_config = ManagedOnlineEndpoint(
+        name=unique_endpoint_name,
+        description="Purchase predictor model endpoint with unique naming",
+        auth_mode="key",
+        tags={
+            "project": "purchase-predictor",
+            "environment": "production",
+            "deployment_type": "managed_endpoint_unique",
+            "created": time.strftime("%Y-%m-%d_%H-%M-%S"),
+            "original_name": base_endpoint_name
+        }
+    )
+    
+    logger.info("⏳ Creating endpoint with cleanup and retry logic...")
+    endpoint = create_endpoint_with_cleanup_retry(ml_client, endpoint_config)
+    
+    # Store the actual endpoint name for later use
+    config['deployment']['actual_endpoint_name'] = endpoint.name
+    
+    return endpoint
 
 def create_new_endpoint(ml_client, endpoint_name):
     """Create a new endpoint with a clean state."""
@@ -130,42 +142,69 @@ def create_environment(ml_client, config):
     return environment
 
 def create_deployment(ml_client, config, registration_info, endpoint, environment):
-    """Create the online deployment."""
-    deployment_name = config['deployment']['deployment_name']
-    endpoint_name = config['deployment']['endpoint_name']
+    """Create the online deployment with unique naming."""
+    base_deployment_name = config['deployment'].get('deployment_name', 'purchase-predictor-deployment')
     
-    logger.info(f"Creating deployment: {deployment_name}")
+    # Generate unique deployment name
+    unique_deployment_name = generate_unique_deployment_name(base_deployment_name.split('-')[0])
+    
+    # Validate the generated name
+    is_valid, error_msg = validate_azure_ml_name(unique_deployment_name, "deployment")
+    if not is_valid:
+        logger.warning(f"Generated deployment name validation failed: {error_msg}")
+        unique_deployment_name = generate_unique_deployment_name("pp-dep")
+    
+    logger.info(f"Creating deployment with unique naming:")
+    logger.info(f"   Original config: {base_deployment_name}")
+    logger.info(f"   Generated unique: {unique_deployment_name}")
+    logger.info(f"   Target endpoint: {endpoint.name}")
     
     # Get model reference
     model_reference = f"{registration_info['model_name']}:{registration_info['model_version']}"
     
-    # Create deployment with minimal configuration
-    deployment = ManagedOnlineDeployment(
-        name=deployment_name,
-        endpoint_name=endpoint_name,
+    # Create deployment configuration with unique naming
+    deployment_config = ManagedOnlineDeployment(
+        name=unique_deployment_name,
+        endpoint_name=endpoint.name,
         model=model_reference,
         environment=environment,
         code_configuration=CodeConfiguration(
-            code=".",
-            scoring_script="src/scripts/score.py"
+            code="src/scripts",
+            scoring_script="score.py"
         ),
         instance_type="Standard_DS2_v2",
-        instance_count=1
+        instance_count=1,
+        tags={
+            "model_name": registration_info['model_name'],
+            "model_version": registration_info['model_version'],
+            "deployment_type": "managed_endpoint_unique",
+            "original_name": base_deployment_name
+        }
     )
     
-    # Deploy the model
-    logger.info("Starting deployment... This may take several minutes.")
-    deployment = ml_client.online_deployments.begin_create_or_update(deployment).result()
+    # Deploy the model with retry logic
+    logger.info("⏳ Starting deployment with retry logic... This may take several minutes.")
+    deployment = create_deployment_with_retry(ml_client, deployment_config)
     
-    logger.info(f"Deployment {deployment_name} created successfully")
+    # Store the actual deployment name for later use
+    config['deployment']['actual_deployment_name'] = deployment.name
+    
+    logger.info(f"✅ Deployment {deployment.name} created successfully")
     return deployment
 
 def set_traffic_to_deployment(ml_client, config):
-    """Set 100% traffic to the deployment."""
-    endpoint_name = config['deployment']['endpoint_name']
-    deployment_name = config['deployment']['deployment_name']
+    """Set 100% traffic to the deployment using actual names."""
+    # Use actual names that were created (may be different due to unique naming)
+    endpoint_name = config['deployment'].get('actual_endpoint_name')
+    deployment_name = config['deployment'].get('actual_deployment_name')
     
-    logger.info(f"Setting traffic to deployment: {deployment_name}")
+    if not endpoint_name or not deployment_name:
+        logger.error("Missing actual endpoint or deployment names in config")
+        return
+    
+    logger.info(f"Setting traffic routing:")
+    logger.info(f"   Endpoint: {endpoint_name}")
+    logger.info(f"   Deployment: {deployment_name}")
     
     # Get endpoint and set traffic
     endpoint = ml_client.online_endpoints.get(endpoint_name)
@@ -173,24 +212,46 @@ def set_traffic_to_deployment(ml_client, config):
     
     # Update endpoint
     ml_client.online_endpoints.begin_create_or_update(endpoint).result()
-    logger.info("Traffic set to 100% for the deployment")
+    logger.info("✅ Traffic set to 100% for the deployment")
 
 def get_endpoint_details(ml_client, config):
-    """Get and display endpoint details."""
-    endpoint_name = config['deployment']['endpoint_name']
+    """Get and display endpoint details using actual names."""
+    # Use actual names that were created
+    endpoint_name = config['deployment'].get('actual_endpoint_name')
+    deployment_name = config['deployment'].get('actual_deployment_name')
+    original_endpoint = config['deployment'].get('endpoint_name', 'unknown')
+    original_deployment = config['deployment'].get('deployment_name', 'unknown')
+    
+    if not endpoint_name:
+        logger.error("Missing actual endpoint name in config")
+        return None
     
     endpoint = ml_client.online_endpoints.get(endpoint_name)
     
-    logger.info("Endpoint details:")
-    logger.info(f"  Name: {endpoint.name}")
-    logger.info(f"  Scoring URI: {endpoint.scoring_uri}")
-    logger.info(f"  Auth mode: {endpoint.auth_mode}")
+    logger.info("✅ Endpoint details retrieved:")
+    logger.info(f"   Name: {endpoint.name}")
+    logger.info(f"   Scoring URI: {endpoint.scoring_uri}")
+    logger.info(f"   Auth mode: {endpoint.auth_mode}")
     
-    # Save endpoint info for later use
+    # Save comprehensive endpoint info with unique naming details
     endpoint_info = {
-        'endpoint_name': endpoint.name,
-        'scoring_uri': endpoint.scoring_uri,
-        'auth_mode': endpoint.auth_mode
+        'deployment_type': 'managed_endpoint_unique',
+        'naming_strategy': 'unique_names_with_retry',
+        'original_names': {
+            'endpoint_name': original_endpoint,
+            'deployment_name': original_deployment
+        },
+        'actual_names': {
+            'endpoint_name': endpoint.name,
+            'deployment_name': deployment_name or 'unknown'
+        },
+        'endpoint_details': {
+            'scoring_uri': endpoint.scoring_uri,
+            'auth_mode': endpoint.auth_mode,
+            'traffic': getattr(endpoint, 'traffic', {}),
+            'provisioning_state': getattr(endpoint, 'provisioning_state', 'unknown')
+        },
+        'created': time.strftime("%Y-%m-%d_%H-%M-%S")
     }
     
     # Get endpoint info file path from config
@@ -200,6 +261,27 @@ def get_endpoint_details(ml_client, config):
         yaml.dump(endpoint_info, f)
     
     logger.info(f"Endpoint info saved to {endpoint_info_file}")
+    
+    # Display comprehensive deployment summary
+    print("\n" + "="*80)
+    print("🎉 AZURE ML MANAGED ENDPOINT DEPLOYED SUCCESSFULLY!")
+    print("="*80)
+    print(f"🌐 Endpoint Name: {endpoint.name}")
+    print(f"📊 Original Config: {original_endpoint}")
+    print(f"🔑 Unique Naming: ✅ Enabled")
+    if deployment_name:
+        print(f"🚢 Deployment Name: {deployment_name}")
+        print(f"📊 Original Deployment: {original_deployment}")
+    print("")
+    print(f"📡 Scoring URI: {endpoint.scoring_uri}")
+    print(f"🔐 Auth Mode: {endpoint.auth_mode}")
+    if hasattr(endpoint, 'traffic') and endpoint.traffic:
+        print(f"🔀 Traffic: {endpoint.traffic}")
+    print("")
+    print("🚀 Your model is hosted on Azure ML managed infrastructure!")
+    print("📱 Use the scoring URI above for production predictions")
+    print("="*80)
+    
     return endpoint
 
 def test_endpoint(ml_client, config):
