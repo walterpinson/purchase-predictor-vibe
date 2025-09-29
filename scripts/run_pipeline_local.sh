@@ -1,9 +1,9 @@
 #!/bin/bash
-# Complete pipeline script for purchase predictor deployment
+# Complete pipeline script for purchase predictor deployment with Azure ML integration
 
 set -e  # Exit on any error
 
-echo "🚀 Starting Purchase Predictor Pipeline..."
+echo "🚀 Starting Purchase Predictor Pipeline (Azure ML Integrated)..."
 
 # Check if conda environment exists
 if ! conda info --envs | grep -q "purchase-predictor-env"; then
@@ -24,10 +24,11 @@ python src/pipeline/train.py
 echo "📝 Registering model with Azure ML..."
 python src/pipeline/register.py
 
-echo "🚢 Deploying model to endpoint..."
-python src/pipeline/deploy.py
+echo "🚢 Deploying model to Azure ML..."
+python src/pipeline/deploy_azure_ml.py
 
 echo "✅ Pipeline completed successfully!"
 echo ""
-echo "🔗 Check models/endpoint_info.yaml for endpoint details"
-echo "📊 Use the scoring URI to make predictions via REST API"
+echo "🔗 Check models/azure_ml_deployment_info.yaml for deployment details"
+echo "🚀 Start local inference server: python src/scripts/local_inference.py"
+echo "🧪 Test predictions: curl http://localhost:5000/test"
