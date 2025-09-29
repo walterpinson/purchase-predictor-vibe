@@ -24,11 +24,15 @@ model_registration:
 
 # Deployment Configuration
 deployment:
-  endpoint_name: "purchase-predictor-endpoint-v2"
-  deployment_name: "purchase-predictor-deployment-v2"
+  endpoint_name: "purchase-predictor-endpoint"
+  deployment_name: "purchase-predictor-deployment"
   environment_name: "purchase-predictor-env"
   instance_type: "Standard_DS2_v2"
   instance_count: 1
+  # Regional deployment options
+  region: "eastus"  # Target region for endpoint deployment
+  # Available regions: eastus, westus2, centralus, northeurope, etc.
+  # Leave empty to use workspace region
 
 # Data Configuration
 data:

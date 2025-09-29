@@ -27,7 +27,9 @@ from src.utilities.endpoint_naming import (
     generate_unique_deployment_name,
     create_endpoint_with_cleanup_retry,
     create_deployment_with_retry,
-    validate_azure_ml_name
+    validate_azure_ml_name,
+    create_regional_endpoint_config,
+    validate_target_region
 )
 
 # Set up logging
@@ -83,8 +85,30 @@ def load_registration_info(config):
     return registration_info
 
 def create_optimized_endpoint(ml_client, config):
-    """Create endpoint with unique naming and comprehensive retry logic."""
+    """Create endpoint with unique naming and regional deployment support."""
     base_endpoint_name = config['deployment'].get('endpoint_name', 'purchase-predictor-endpoint')
+    target_region = config['deployment'].get('region', '').strip()
+    
+    # Debug logging for configuration analysis
+    logger.info(f"🐛 DEBUG: Regional deployment configuration analysis:")
+    logger.info(f"   Full config structure: {json.dumps(config, indent=2, default=str)}")
+    logger.info(f"   Deployment section: {config.get('deployment', {})}")
+    logger.info(f"   Raw region value: '{config['deployment'].get('region', 'NOT_FOUND')}'")
+    logger.info(f"   Stripped region value: '{target_region}'")
+    logger.info(f"   Region is empty/None: {not target_region}")
+    logger.info(f"   Region length: {len(target_region) if target_region else 0}")
+    
+    # Validate target region if specified
+    if target_region:
+        is_valid_region, region_msg = validate_target_region(target_region)
+        if not is_valid_region:
+            logger.error(f"❌ Invalid target region: {region_msg}")
+            raise ValueError(f"Invalid target region: {region_msg}")
+        logger.info(f"✅ Target region validated: {region_msg}")
+    else:
+        logger.warning(f"⚠️ No target region specified in config - deployment will use workspace region")
+        logger.warning(f"   This explains why you're seeing 'centralus' in the URL")
+        logger.warning(f"   The workspace is in Central US, so endpoints default there")
     
     # Generate unique endpoint name
     unique_endpoint_name = generate_unique_endpoint_name(base_endpoint_name.split('-')[0])
@@ -96,29 +120,45 @@ def create_optimized_endpoint(ml_client, config):
         # Fallback to a simpler unique name
         unique_endpoint_name = generate_unique_endpoint_name("pp")
     
-    logger.info(f"🚀 Creating managed online endpoint with unique name: {unique_endpoint_name}")
+    logger.info(f"🚀 Creating managed online endpoint with regional deployment:")
     logger.info(f"   Original config name: {base_endpoint_name}")
     logger.info(f"   Generated unique name: {unique_endpoint_name}")
+    if target_region:
+        logger.info(f"   🌍 Target region: {target_region} (WILL OVERRIDE WORKSPACE REGION)")
+    else:
+        logger.warning(f"   🌍 Target region: workspace region (centralus) - NO OVERRIDE")
     
-    # Create endpoint configuration with minimal settings for reliability
+    # Create endpoint configuration with regional settings
     endpoint_config = ManagedOnlineEndpoint(
         name=unique_endpoint_name,
-        description="Azure ML Studio hosted inference server for purchase predictor (unique deployment)",
+        description=f"Azure ML Studio hosted inference server for purchase predictor (region: {target_region or 'workspace'})",
         auth_mode="key",
+        location=target_region if target_region else None,  # Set region if specified
         tags={
             "project": "purchase-predictor",
             "environment": "production",
-            "deployment_type": "azure_ml_studio_hosted_unique",
+            "deployment_type": "azure_ml_studio_hosted_regional",
             "created": datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
             "original_name": base_endpoint_name,
-            "unique_name": unique_endpoint_name
+            "unique_name": unique_endpoint_name,
+            "target_region": target_region or "workspace_region"
         }
     )
+    
+    # Debug the endpoint configuration before creation
+    logger.info(f"🐛 DEBUG: ManagedOnlineEndpoint configuration:")
+    logger.info(f"   name: {endpoint_config.name}")
+    logger.info(f"   location: {getattr(endpoint_config, 'location', 'NOT_SET')}")
+    logger.info(f"   auth_mode: {endpoint_config.auth_mode}")
+    logger.info(f"   description: {endpoint_config.description}")
+    logger.info(f"   Target region passed to Azure: {target_region if target_region else 'None (will use workspace region)'}")
     
     logger.info("⏳ Creating endpoint with cleanup and retry logic...")
     logger.info("   🔄 Automatic cleanup of failed endpoints")
     logger.info("   🔁 Up to 3 retry attempts with new names")
     logger.info("   ⏱️ 5-minute delays between retries")
+    if target_region:
+        logger.info(f"   🌍 Deploying to {target_region} region")
     
     try:
         # Use the robust endpoint creation with retry logic
@@ -127,19 +167,24 @@ def create_optimized_endpoint(ml_client, config):
         logger.info(f"✅ Endpoint created successfully!")
         logger.info(f"   Final endpoint name: {endpoint.name}")
         logger.info(f"   Provisioning state: {endpoint.provisioning_state}")
+        if hasattr(endpoint, 'location') and endpoint.location:
+            logger.info(f"   Deployed region: {endpoint.location}")
         
         # Update config to track the actual endpoint name used
         config['deployment']['actual_endpoint_name'] = endpoint.name
+        config['deployment']['actual_region'] = getattr(endpoint, 'location', target_region or 'workspace')
         
         return endpoint
         
     except Exception as e:
         logger.error(f"❌ Failed to create endpoint after all retry attempts: {e}")
         logger.error("   This may indicate:")
-        logger.error("   - Subscription quota exceeded")
+        logger.error("   - Subscription quota exceeded in target region")
+        logger.error("   - Target region doesn't support required instance types")
         logger.error("   - Resource provider registration issues")
-        logger.error("   - Insufficient permissions")
-        logger.error("   - Service availability issues")
+        logger.error("   - Insufficient permissions in target region")
+        if target_region:
+            logger.error(f"   - Try a different region or remove region constraint")
         raise
 
 def create_optimized_environment(ml_client, config):
@@ -265,15 +310,22 @@ def get_hosted_endpoint_details(ml_client, config, endpoint_name):
     try:
         endpoint = ml_client.online_endpoints.get(endpoint_name)
         
-        # Get actual names used (may be different from config due to unique naming)
+        # Get actual names and regional info
         actual_endpoint_name = endpoint.name
         actual_deployment_name = config['deployment'].get('actual_deployment_name', 'unknown')
         original_endpoint_name = config['deployment'].get('endpoint_name', 'unknown')
         original_deployment_name = config['deployment'].get('deployment_name', 'unknown')
+        target_region = config['deployment'].get('region', '')
+        actual_region = config['deployment'].get('actual_region', getattr(endpoint, 'location', 'unknown'))
         
         endpoint_info = {
-            'deployment_type': 'azure_ml_studio_hosted_unique',
+            'deployment_type': 'azure_ml_studio_hosted_regional',
             'naming_strategy': 'unique_names_with_retry',
+            'regional_deployment': {
+                'target_region': target_region or 'workspace_region',
+                'actual_region': actual_region,
+                'region_specified': bool(target_region)
+            },
             'original_names': {
                 'endpoint_name': original_endpoint_name,
                 'deployment_name': original_deployment_name
@@ -330,7 +382,16 @@ def get_hosted_endpoint_details(ml_client, config, endpoint_name):
         if endpoint.traffic:
             print(f"🔀 Traffic Distribution: {endpoint.traffic}")
         print("")
-        print("🏗️ DEPLOYMENT DETAILS:")
+        print("� REGIONAL DEPLOYMENT:")
+        if target_region:
+            print(f"   Target Region: {target_region}")
+            print(f"   Actual Region: {actual_region}")
+            print(f"   Regional Deployment: ✅ Enabled")
+        else:
+            print(f"   Region: {actual_region} (workspace region)")
+            print(f"   Regional Deployment: Default (workspace region)")
+        print("")
+        print("�🏗️ DEPLOYMENT DETAILS:")
         print(f"   Deployment Name: {actual_deployment_name}")
         print(f"   Original Config Name: {original_deployment_name}")
         print(f"   Instance Type: Standard_DS2_v2")
@@ -340,11 +401,11 @@ def get_hosted_endpoint_details(ml_client, config, endpoint_name):
         print("📱 Use the scoring URI above for production predictions")
         print("🎛️ Monitor and manage your endpoint in Azure ML Studio portal")
         print("")
-        print("📋 UNIQUE NAMING BENEFITS:")
-        print("   ✅ Prevents endpoint name conflicts")
-        print("   ✅ Enables reliable retry logic")
-        print("   ✅ Supports multiple deployments")
-        print("   ✅ Automatic cleanup of failed endpoints")
+        print("📋 DEPLOYMENT FEATURES:")
+        print("   ✅ Unique naming prevents conflicts")
+        print("   ✅ Regional deployment support")
+        print("   ✅ Automatic retry with cleanup")
+        print("   ✅ Enterprise-grade reliability")
         print("="*80)
         
         return endpoint

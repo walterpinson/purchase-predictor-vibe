@@ -260,3 +260,105 @@ def validate_azure_ml_name(name: str, name_type: str = "endpoint") -> Tuple[bool
         return False, f"{name_type} name cannot contain consecutive hyphens"
     
     return True, None
+
+def create_regional_endpoint_config(endpoint_name: str, config: dict, description: str = None) -> dict:
+    """
+    Create endpoint configuration with regional deployment settings.
+    
+    Args:
+        endpoint_name: Name for the endpoint
+        config: Configuration dictionary with deployment settings
+        description: Optional description for the endpoint
+    
+    Returns:
+        Dictionary with endpoint configuration including regional settings
+    """
+    target_region = config.get('deployment', {}).get('region', '').strip()
+    
+    endpoint_config = {
+        'name': endpoint_name,
+        'description': description or f"Purchase predictor endpoint deployed to {target_region or 'workspace region'}",
+        'auth_mode': 'key',
+        'tags': {
+            'project': 'purchase-predictor',
+            'environment': 'production',
+            'deployment_type': 'managed_endpoint_regional',
+            'created': time.strftime("%Y-%m-%d_%H-%M-%S")
+        }
+    }
+    
+    # Add regional configuration if specified
+    if target_region:
+        endpoint_config['location'] = target_region
+        endpoint_config['tags']['target_region'] = target_region
+        logger.info(f"🌍 Endpoint will be deployed to region: {target_region}")
+    else:
+        endpoint_config['tags']['target_region'] = 'workspace_region'
+        logger.info("🌍 Endpoint will be deployed to workspace region")
+    
+    return endpoint_config
+
+def get_supported_regions() -> list:
+    """
+    Get list of commonly supported regions for Azure ML online endpoints.
+    
+    Returns:
+        List of supported region names
+    """
+    return [
+        'eastus',
+        'eastus2', 
+        'westus',
+        'westus2',
+        'westus3',
+        'centralus',
+        'northcentralus',
+        'southcentralus',
+        'westcentralus',
+        'canadacentral',
+        'canadaeast',
+        'brazilsouth',
+        'northeurope',
+        'westeurope',
+        'francecentral',
+        'germanywestcentral',
+        'norwayeast',
+        'switzerlandnorth',
+        'uksouth',
+        'ukwest',
+        'southeastasia',
+        'eastasia',
+        'australiaeast',
+        'australiasoutheast',
+        'centralindia',
+        'southindia',
+        'japaneast',
+        'japanwest',
+        'koreacentral',
+        'koreasouth'
+    ]
+
+def validate_target_region(region: str) -> Tuple[bool, str]:
+    """
+    Validate if the target region is supported for Azure ML deployments.
+    
+    Args:
+        region: Region name to validate
+    
+    Returns:
+        Tuple of (is_valid, message)
+    """
+    if not region:
+        return True, "No specific region configured - will use workspace region"
+    
+    region = region.lower().strip()
+    supported_regions = get_supported_regions()
+    
+    if region in supported_regions:
+        return True, f"Region '{region}' is supported for Azure ML deployments"
+    else:
+        similar_regions = [r for r in supported_regions if region in r or r in region]
+        if similar_regions:
+            return False, f"Region '{region}' not found. Did you mean: {', '.join(similar_regions[:3])}?"
+        else:
+            return False, f"Region '{region}' not supported. Supported regions include: {', '.join(supported_regions[:5])}..."
