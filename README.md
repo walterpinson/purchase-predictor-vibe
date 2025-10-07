@@ -96,7 +96,9 @@ purchase-predictor-vibe/
 │   └── utilities/               # Shared utilities
 │       ├── preprocessing.py     # Shared preprocessing utility class
 │       ├── endpoint_naming.py   # Endpoint naming utilities
-│       └── local_inference.py   # Local development server
+│       ├── local_inference.py   # Local development server
+│       ├── server_manager.py    # Deployment archival management
+│       └── test_regional_config.py  # Regional deployment testing
 ├── context/                     # Project documentation
 │   ├── prd.md                   # Product Requirements
 │   ├── spec.md                  # Technical Specification

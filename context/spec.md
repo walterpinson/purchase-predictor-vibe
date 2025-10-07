@@ -20,6 +20,8 @@
 - **src/scripts/score.py**: Scoring script used for deployment (REST endpoint).
 - **src/utilities/preprocessing.py**: Shared preprocessing utility class for consistent data transformation.
 - **src/utilities/local_inference.py**: Local development server for testing models.
+- **src/utilities/server_manager.py**: Deployment archival management utility.
+- **src/utilities/test_regional_config.py**: Regional deployment testing and debugging utility.
 - **conda.yaml**: Environment definition (dependencies).
 - **config/config.yaml**: Project settings (resource group, workspace, endpoint names).
 
@@ -41,6 +43,8 @@
           |- preprocessing.py        # Shared preprocessing utility class
           |- endpoint_naming.py      # Endpoint naming utilities
           |- local_inference.py      # Local development server
+          |- server_manager.py       # Deployment archival management
+          |- test_regional_config.py # Regional deployment testing
   |- config/
       |- config.yaml
       |- config_loader.py

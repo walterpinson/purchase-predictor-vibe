@@ -174,23 +174,23 @@ server/                              # Active deployment directory
 
 ### **Archival Management Commands**
 
-Use the `server_manager.py` utility for archival management:
+Use the `src/utilities/server_manager.py` utility for archival management:
 
 ```bash
 # List all deployment archives with metadata
-python server_manager.py list
+python src/utilities/server_manager.py list
 
 # Show current deployment status and files
-python server_manager.py current
+python src/utilities/server_manager.py current
 
 # Display complete server directory structure
-python server_manager.py structure
+python src/utilities/server_manager.py structure
 
 # Clean old archives (keeps 5 most recent)
-python server_manager.py clean
+python src/utilities/server_manager.py clean
 
 # Prepare fresh deployment environment
-python server_manager.py fresh
+python src/utilities/server_manager.py fresh
 ```
 
 ### **Benefits**
@@ -221,7 +221,7 @@ Each archive includes rich metadata for troubleshooting:
 ### **Automatic Cleanup**
 
 - Archives are automatically created before each new deployment
-- Use `python server_manager.py clean` to remove old archives  
+- Use `python src/utilities/server_manager.py clean` to remove old archives  
 - Keeps the 5 most recent archives by default
 - Manual cleanup preserves deployment history with timestamped archives
 
@@ -238,8 +238,8 @@ The archival system solves the **Azure ML container dependency issue** by:
 
 When deployments fail or behave unexpectedly:
 
-1. **Check current deployment**: `python server_manager.py current`
-2. **Compare with previous**: `python server_manager.py list`
+1. **Check current deployment**: `python src/utilities/server_manager.py current`
+2. **Compare with previous**: `python src/utilities/server_manager.py list`
 3. **Examine specific archive**: Look in `server/archives/{timestamp}/`
 4. **Verify file changes**: Diff current vs archived versions
 5. **Rollback if needed**: Copy files from working archive back to `/server`
