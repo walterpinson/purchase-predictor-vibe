@@ -39,7 +39,31 @@
 - Register the MLFlow model.
 - Store model name and version for deployment.
 
-### 5. Deployment (pipeline/deploy.py)
+### 5. Deployment (pipeline/deploy_managed_endpoint.py)
+
+**Primary Azure ML Managed Endpoint Deployment with Archival System**
+- Creates managed online endpoints with unique naming and retry logic
+- Implements comprehensive archival deployment artifact system
+- Supports regional deployment configuration
+- Provides advanced error handling and debugging capabilities
+
+**Alternative Deployment Options:**
+- `deploy_aci.py`: Cost-optimized ACI-style deployment with archival system
+- `deploy_azure_ml.py`: Azure ML integration verification and local server bridge
+
+**Primary Deployment (deploy_managed_endpoint.py):**
+- Comprehensive Azure ML managed endpoint deployment
+- Archival deployment artifact system
+- Regional deployment support
+- Advanced error handling and retry logic
+
+**ACI-Style Deployment (deploy_aci.py):**
+- Cost-optimized deployment with smaller instances
+- Standard_F2s_v2 instances for budget-conscious scenarios  
+
+**Azure ML Integration (deploy_azure_ml.py):**
+- Verification of Azure ML model registry integration
+- Local server bridge functionality
 
 - Define online endpoint using SDK.
 - Set deployment name, model reference, environment (conda.yaml), scoring script.

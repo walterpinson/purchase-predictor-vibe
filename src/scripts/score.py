@@ -10,9 +10,7 @@ import pandas as pd
 import mlflow
 import mlflow.sklearn
 import joblib
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from src.modules.preprocessing import PurchaseDataPreprocessor
+from preprocessing import PurchaseDataPreprocessor
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

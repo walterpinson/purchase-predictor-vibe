@@ -87,7 +87,9 @@ purchase-predictor-vibe/
 │   ├── pipeline/                # MLOps pipeline scripts
 │   │   ├── train.py             # Model training script
 │   │   ├── register.py          # Model registration script
-│   │   └── deploy.py            # Model deployment script
+│   │   ├── deploy_managed_endpoint.py  # Primary Azure ML managed endpoint deployment (with archival)
+│   │   ├── deploy_aci.py               # ACI-style deployment (cost-optimized)
+│   │   ├── deploy_azure_ml.py          # Azure ML integration verification
 │   ├── modules/                 # Shared modules
 │   │   └── preprocessing.py     # Shared preprocessing utilities
 │   ├── scripts/                 # Deployment scripts
@@ -238,7 +240,7 @@ python src/pipeline/train.py
 python src/pipeline/register.py
 
 # 4. Deploy to online endpoint
-python src/pipeline/deploy.py
+python src/pipeline/deploy_managed_endpoint.py
 ```
 
 ### Detailed Steps
@@ -282,7 +284,7 @@ python src/pipeline/register.py
 #### 4. Model Deployment
 
 ```bash
-python src/pipeline/deploy.py
+python src/pipeline/deploy_managed_endpoint.py
 ```
 
 - Creates managed online endpoint
@@ -329,7 +331,7 @@ data_processing:
 For production deployments with managed infrastructure:
 
 ```bash
-python src/pipeline/deploy.py
+python src/pipeline/deploy_managed_endpoint.py
 ```
 
 This creates a managed online endpoint with:

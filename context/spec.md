@@ -14,7 +14,9 @@
 - **src/utilities/data_prep.py**: Loads and splits CSV data into train/test sets.
 - **src/pipeline/train.py**: Trains the classifier, persists model using MLFlow.
 - **src/pipeline/register.py**: Registers model with Azure ML workspace.
-- **src/pipeline/deploy.py**: Deploys the model to an online endpoint.
+- **src/pipeline/deploy_managed_endpoint.py**: Primary Azure ML managed endpoint deployment with archival system.
+- **src/pipeline/deploy_aci.py**: ACI-style deployment for cost-optimized scenarios.
+- **src/pipeline/deploy_azure_ml.py**: Azure ML integration verification and local server bridge.
 - **src/scripts/score.py**: Scoring script used for deployment (REST endpoint).
 - **src/modules/preprocessing.py**: Shared preprocessing utilities for consistent data transformation.
 - **conda.yaml**: Environment definition (dependencies).
@@ -28,7 +30,11 @@
       |- pipeline/
           |- train.py
           |- register.py
-          |- deploy.py
+          |- deploy_managed_endpoint.py  # Primary deployment (with archival)
+          |- deploy_aci.py             # ACI-style deployment  
+          |- deploy_managed_endpoint.py
+          |- deploy_aci.py
+          |- deploy_azure_ml.py        # Azure ML integration
       |- modules/
           |- preprocessing.py
       |- scripts/

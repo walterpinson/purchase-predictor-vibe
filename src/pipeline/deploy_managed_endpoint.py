@@ -10,6 +10,7 @@ import time
 import json
 import datetime
 import uuid
+import shutil
 from azure.ai.ml import MLClient
 from azure.ai.ml.entities import (
     ManagedOnlineEndpoint, 
@@ -83,6 +84,98 @@ def load_registration_info(config):
     logger.info(f"📋 Loaded registration info:")
     logger.info(f"   Model: {registration_info['model_name']} v{registration_info['model_version']}")
     return registration_info
+
+def prepare_deployment_artifacts():
+    """
+    Prepare deployment artifacts with archival system.
+    
+    Creates a clean /server directory with current deployment files and archives
+    previous deployments by timestamp for debugging and rollback purposes.
+    """
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    
+    logger.info("🗃️ Preparing deployment artifacts with archival system...")
+    
+    # Create server directory structure
+    os.makedirs('server', exist_ok=True)
+    archive_dir = f'server/archives/{timestamp}'
+    os.makedirs(archive_dir, exist_ok=True)
+    
+    # Archive current deployment if it exists
+    archived_files = []
+    if os.path.exists('server/score.py'):
+        shutil.copy2('server/score.py', f'{archive_dir}/score.py')
+        archived_files.append('score.py')
+        logger.info(f"📦 Archived existing score.py")
+    
+    if os.path.exists('server/preprocessing.py'):
+        shutil.copy2('server/preprocessing.py', f'{archive_dir}/preprocessing.py')
+        archived_files.append('preprocessing.py')
+        logger.info(f"📦 Archived existing preprocessing.py")
+    
+    if archived_files:
+        logger.info(f"✅ Previous deployment archived to {archive_dir}")
+        
+        # Create deployment metadata
+        metadata = {
+            'archived_at': timestamp,
+            'archived_files': archived_files,
+            'source_info': {
+                'score_script_source': 'src/scripts/score.py',
+                'preprocessing_source': 'src/modules/preprocessing.py'
+            }
+        }
+        
+        with open(f'{archive_dir}/deployment_info.json', 'w') as f:
+            json.dump(metadata, f, indent=2, default=str)
+        
+        logger.info(f"📄 Deployment metadata saved to {archive_dir}/deployment_info.json")
+    
+    # Copy new deployment files
+    logger.info("📋 Copying fresh deployment artifacts...")
+    
+    # Copy score.py
+    if not os.path.exists('src/scripts/score.py'):
+        raise FileNotFoundError("Score script not found at src/scripts/score.py")
+    shutil.copy2('src/scripts/score.py', 'server/score.py')
+    logger.info("✅ Copied src/scripts/score.py -> server/score.py")
+    
+    # Copy preprocessing.py
+    if not os.path.exists('src/modules/preprocessing.py'):
+        raise FileNotFoundError("Preprocessing module not found at src/modules/preprocessing.py")
+    shutil.copy2('src/modules/preprocessing.py', 'server/preprocessing.py')
+    logger.info("✅ Copied src/modules/preprocessing.py -> server/preprocessing.py")
+    
+    logger.info("🔧 Score.py already configured with simple imports for deployment")
+    
+    # Create current deployment metadata
+    current_metadata = {
+        'deployed_at': timestamp,
+        'deployment_files': ['score.py', 'preprocessing.py'],
+        'source_info': {
+            'score_script_source': 'src/scripts/score.py',
+            'preprocessing_source': 'src/modules/preprocessing.py'
+        },
+        'deployment_type': 'azure_ml_managed_endpoint',
+        'archive_location': archive_dir if archived_files else None
+    }
+    
+    with open('server/deployment_info.json', 'w') as f:
+        json.dump(current_metadata, f, indent=2, default=str)
+    
+    logger.info("✅ Deployment artifacts prepared successfully!")
+    logger.info("📁 Server directory structure:")
+    logger.info("   server/")
+    logger.info("   ├── score.py                 # Azure ML scoring script")
+    logger.info("   ├── preprocessing.py         # Preprocessing module")
+    logger.info("   ├── deployment_info.json     # Current deployment metadata")
+    if archived_files:
+        logger.info(f"   └── archives/{timestamp}/     # Previous deployment archive")
+        logger.info(f"       ├── score.py")
+        logger.info(f"       ├── preprocessing.py")
+        logger.info(f"       └── deployment_info.json")
+    
+    return 'server'
 
 def create_optimized_endpoint(ml_client, config):
     """Create endpoint with unique naming and regional deployment support."""
@@ -236,6 +329,9 @@ def create_optimized_deployment(ml_client, config, registration_info, endpoint, 
     
     logger.info(f"📦 Using model: {model_reference}")
     
+    # Prepare deployment artifacts with archival
+    server_dir = prepare_deployment_artifacts()
+    
     # Create deployment configuration with optimized settings
     deployment_config = ManagedOnlineDeployment(
         name=unique_deployment_name,
@@ -243,7 +339,7 @@ def create_optimized_deployment(ml_client, config, registration_info, endpoint, 
         model=model_reference,
         environment=environment,
         code_configuration=CodeConfiguration(
-            code="src/scripts",  # More specific path
+            code=server_dir,  # Use the prepared server directory
             scoring_script="score.py"
         ),
         instance_type="Standard_DS2_v2",  # Reliable instance type
@@ -254,7 +350,9 @@ def create_optimized_deployment(ml_client, config, registration_info, endpoint, 
             "deployment_type": "azure_ml_studio_hosted_unique",
             "original_name": base_deployment_name,
             "unique_name": unique_deployment_name,
-            "created": datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            "created": datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
+            "server_directory": server_dir,
+            "deployment_artifacts": "archived"
         }
     )
     
@@ -263,6 +361,7 @@ def create_optimized_deployment(ml_client, config, registration_info, endpoint, 
     logger.info("   🐳 Building container with your model")
     logger.info("   🌐 Creating hosted inference endpoint")
     logger.info("   🔁 Up to 2 retry attempts if deployment fails")
+    logger.info(f"   📁 Using deployment artifacts from: {server_dir}")
     
     try:
         # Use the robust deployment creation with retry logic
@@ -284,6 +383,7 @@ def create_optimized_deployment(ml_client, config, registration_info, endpoint, 
         logger.error("  - Image build failures due to environment issues")
         logger.error("  - Timeout during provisioning (try again later)")
         logger.error("  - Insufficient subscription permissions")
+        logger.error(f"  - Check deployment artifacts in: {server_dir}")
         raise
 
 def configure_endpoint_traffic(ml_client, endpoint_name, deployment_name):

@@ -134,7 +134,7 @@ main() {
     echo ""
     
     # Run the managed endpoint deployment
-    python src/pipeline/deploy.py
+    python src/pipeline/deploy_managed_endpoint.py
 
     echo ""
     echo "✅ AZURE ML STUDIO HOSTED ENDPOINT DEPLOYMENT COMPLETED!"

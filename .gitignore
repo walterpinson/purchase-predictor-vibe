@@ -2,6 +2,9 @@
 .env.local
 .env
 
+# Deployment artifacts and archives
+server/
+
 # Python
 __pycache__/
 *.py[cod]

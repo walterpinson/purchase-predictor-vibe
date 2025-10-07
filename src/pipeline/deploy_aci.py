@@ -7,6 +7,9 @@ import os
 import yaml
 import logging
 import time
+import datetime
+import shutil
+import json
 from azure.ai.ml import MLClient
 from azure.ai.ml.entities import (
     ManagedOnlineEndpoint,
@@ -58,8 +61,100 @@ def load_registration_info(config):
     with open(registration_info_file, 'r') as f:
         registration_info = yaml.safe_load(f)
     
-    logger.info(f"Loaded registration info for model: {registration_info['model_name']} v{registration_info['model_version']}")
+    logger.info(f"📋 Loaded registration info:")
+    logger.info(f"   Model: {registration_info['model_name']} v{registration_info['model_version']}")
     return registration_info
+
+def prepare_deployment_artifacts():
+    """
+    Prepare deployment artifacts with archival system for ACI deployment.
+    
+    Creates a clean /server directory with current deployment files and archives
+    previous deployments by timestamp for debugging and rollback purposes.
+    """
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    
+    logger.info("🗃️ Preparing ACI deployment artifacts with archival system...")
+    
+    # Create server directory structure
+    os.makedirs('server', exist_ok=True)
+    archive_dir = f'server/archives/{timestamp}'
+    os.makedirs(archive_dir, exist_ok=True)
+    
+    # Archive current deployment if it exists
+    archived_files = []
+    if os.path.exists('server/score.py'):
+        shutil.copy2('server/score.py', f'{archive_dir}/score.py')
+        archived_files.append('score.py')
+    
+    if os.path.exists('server/preprocessing.py'):
+        shutil.copy2('server/preprocessing.py', f'{archive_dir}/preprocessing.py')
+        archived_files.append('preprocessing.py')
+    
+    if archived_files:
+        logger.info(f"📦 Archived previous deployment to {archive_dir}:")
+        for file in archived_files:
+            logger.info(f"   ├── {file}")
+        
+        # Create archive metadata
+        archive_metadata = {
+            'archived_at': timestamp,
+            'archived_files': archived_files,
+            'archive_reason': 'new_aci_deployment',
+            'deployment_type': 'aci_style_unique'
+        }
+        
+        with open(f'{archive_dir}/archive_info.json', 'w') as f:
+            json.dump(archive_metadata, f, indent=2)
+        
+        logger.info(f"   └── archive_info.json")
+    
+    # Copy new deployment files
+    logger.info("📋 Copying fresh deployment artifacts...")
+    
+    # Copy score.py
+    if not os.path.exists('src/scripts/score.py'):
+        raise FileNotFoundError("src/scripts/score.py not found")
+    shutil.copy2('src/scripts/score.py', 'server/score.py')
+    logger.info("✅ Copied src/scripts/score.py -> server/score.py")
+    
+    # Copy preprocessing.py
+    if not os.path.exists('src/modules/preprocessing.py'):
+        raise FileNotFoundError("src/modules/preprocessing.py not found")
+    shutil.copy2('src/modules/preprocessing.py', 'server/preprocessing.py')
+    logger.info("✅ Copied src/modules/preprocessing.py -> server/preprocessing.py")
+    
+    logger.info("🔧 Score.py already configured with simple imports for deployment")
+    
+    # Create current deployment metadata
+    current_metadata = {
+        'deployed_at': timestamp,
+        'deployment_files': ['score.py', 'preprocessing.py'],
+        'source_info': {
+            'score_script_source': 'src/scripts/score.py',
+            'preprocessing_source': 'src/modules/preprocessing.py'
+        },
+        'deployment_type': 'aci_style_unique',
+        'instance_type': 'Standard_F2s_v2',
+        'archive_location': archive_dir if archived_files else None
+    }
+    
+    with open('server/deployment_info.json', 'w') as f:
+        json.dump(current_metadata, f, indent=2)
+    
+    logger.info("✅ ACI deployment artifacts prepared successfully!")
+    logger.info("📁 Server directory structure:")
+    logger.info("   server/")
+    logger.info("   ├── score.py                 # Azure ML scoring script")
+    logger.info("   ├── preprocessing.py         # Preprocessing module")
+    logger.info("   ├── deployment_info.json     # Current deployment metadata")
+    if archived_files:
+        logger.info(f"   └── archives/{timestamp}/    # Previous deployment archive")
+        for file in archived_files:
+            logger.info(f"       ├── {file}")
+        logger.info(f"       └── archive_info.json")
+    
+    return 'server'
 
 def create_environment(ml_client, config):
     """Create custom environment for the deployment."""
@@ -109,30 +204,34 @@ def deploy_to_aci(ml_client, config, registration_info, environment):
     model_version = registration_info['model_version']
     model_reference = f"{model_name}:{model_version}"
     
+    # Prepare deployment artifacts with archival
+    server_dir = prepare_deployment_artifacts()
+    
     try:
         # Create endpoint configuration
         endpoint_config = ManagedOnlineEndpoint(
             name=unique_endpoint_name,
-            description="ACI-style deployment for purchase predictor with unique naming",
+            description="ACI-style deployment for purchase predictor with unique naming and archival system",
             auth_mode="key",
             tags={
                 "project": "purchase-predictor",
-                "deployment_type": "aci_style_unique",
-                "created": time.strftime("%Y-%m-%d_%H-%M-%S")
+                "deployment_type": "aci_style_unique_archival",
+                "created": time.strftime("%Y-%m-%d_%H-%M-%S"),
+                "archival_system": "enabled"
             }
         )
         
         logger.info("⏳ Creating ACI endpoint with retry logic...")
         endpoint = create_endpoint_with_cleanup_retry(ml_client, endpoint_config)
         
-        # Create deployment configuration with unique naming
+        # Create deployment configuration with unique naming and archival system
         deployment_config = ManagedOnlineDeployment(
             name=unique_deployment_name,
             endpoint_name=endpoint.name,
             model=model_reference,
             environment=environment,
             code_configuration=CodeConfiguration(
-                code="src/scripts",
+                code=server_dir,  # Use the archival server directory
                 scoring_script="score.py"
             ),
             instance_type="Standard_F2s_v2",  # Smallest available instance for ACI-style
@@ -140,11 +239,12 @@ def deploy_to_aci(ml_client, config, registration_info, environment):
             tags={
                 "model_name": model_name,
                 "model_version": model_version,
-                "deployment_type": "aci_style_unique"
+                "deployment_type": "aci_style_unique_archival",
+                "archival_system": "enabled"
             }
         )
         
-        logger.info("⏳ Creating ACI deployment with retry logic...")
+        logger.info("⏳ Creating ACI deployment with retry logic and archival system...")
         deployment = create_deployment_with_retry(ml_client, deployment_config)
         
         # Set traffic to 100%
@@ -161,10 +261,16 @@ def deploy_to_aci(ml_client, config, registration_info, environment):
         logger.info(f"   Deployment name: {deployment.name}")
         logger.info(f"   Scoring URI: {final_endpoint.scoring_uri}")
         
-        # Save deployment info with unique naming details
+        # Save deployment info with unique naming and archival details
         deployment_info = {
-            'deployment_type': 'aci_style_unique',
+            'deployment_type': 'aci_style_unique_archival',
             'naming_strategy': 'unique_names_with_retry',
+            'archival_system': {
+                'enabled': True,
+                'server_directory': server_dir,
+                'artifacts': ['score.py', 'preprocessing.py'],
+                'deployment_metadata': 'server/deployment_info.json'
+            },
             'endpoint_name': final_endpoint.name,
             'deployment_name': deployment.name,
             'scoring_uri': final_endpoint.scoring_uri,
@@ -218,8 +324,8 @@ def test_aci_service(endpoint, ml_client, deployment_name):
         return False
 
 def main():
-    """Main ACI-style deployment function with unique naming."""
-    logger.info("Starting ACI-style model deployment with unique naming...")
+    """Main ACI-style deployment function with unique naming and archival system."""
+    logger.info("Starting ACI-style model deployment with unique naming and archival system...")
     
     # Load configuration
     config = load_config()
@@ -233,7 +339,7 @@ def main():
     # Create environment
     environment = create_environment(ml_client, config)
     
-    # Deploy with ACI-style configuration and unique naming
+    # Deploy with ACI-style configuration, unique naming, and archival system
     endpoint, deployment_name = deploy_to_aci(ml_client, config, registration_info, environment)
     
     # Test the endpoint
@@ -251,8 +357,11 @@ def main():
     print(f"🚢 Deployment Name: {deployment_name}")
     print(f"📡 Scoring URI: {endpoint.scoring_uri}")
     print(f"🔑 Unique Naming: ✅ Enabled")
+    print(f"🗃️ Archival System: ✅ Enabled")
     print("")
     print("🐳 ACI-style deployment provides containerized inference")
+    print("💰 Cost-optimized with Standard_F2s_v2 instances")
+    print("📁 Deployment artifacts archived in server/archives/")
     print("📱 Use the scoring URI above for predictions")
     print("🎛️ Monitor in Azure ML Studio portal")
     print("="*70)

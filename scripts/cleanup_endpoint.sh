@@ -33,7 +33,7 @@ if [ $? -eq 0 ]; then
         
         if [ $? -eq 0 ]; then
             echo "✅ Endpoint deleted successfully"
-            echo "🚀 You can now run: python src/pipeline/deploy.py"
+            echo "🚀 You can now run: python src/pipeline/deploy_managed_endpoint.py"
         else
             echo "❌ Failed to delete endpoint"
         fi
@@ -42,7 +42,7 @@ if [ $? -eq 0 ]; then
     fi
 else
     echo "✅ No existing endpoint found - ready for fresh deployment"
-    echo "🚀 You can run: python src/pipeline/deploy.py"
+    echo "🚀 You can run: python src/pipeline/deploy_managed_endpoint.py"
 fi
 
 echo ""
