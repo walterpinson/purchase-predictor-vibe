@@ -16,7 +16,7 @@ import joblib
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from config.config_loader import load_config
-from src.modules.preprocessing import PurchaseDataPreprocessor, load_processed_data
+from src.utilities.preprocessing import PurchaseDataPreprocessor, load_processed_data
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -63,7 +63,7 @@ def load_data():
         return X_train, X_test, y_train, y_test
     
     else:
-        raise FileNotFoundError(f"No training data found at {train_path}. Please run src/utilities/data_prep.py first.")
+        raise FileNotFoundError(f"No training data found at {train_path}. Please run src/pipeline/data_prep.py first.")
 
 def create_model(config):
     """Create and return a model based on configuration."""

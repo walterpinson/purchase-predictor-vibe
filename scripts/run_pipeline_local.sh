@@ -16,7 +16,7 @@ eval "$(conda shell.bash hook)"
 conda activate purchase-predictor-env
 
 echo "📊 Generating synthetic data..."
-python src/utilities/data_prep.py
+python src/pipeline/data_prep.py
 
 echo "🤖 Training model..."
 python src/pipeline/train.py
@@ -30,5 +30,5 @@ python src/pipeline/deploy_azure_ml.py
 echo "✅ Pipeline completed successfully!"
 echo ""
 echo "🔗 Check models/azure_ml_deployment_info.yaml for deployment details"
-echo "🚀 Start local inference server: python src/scripts/local_inference.py"
+echo "🚀 Start local inference server: python src/utilities/local_inference.py"
 echo "🧪 Test predictions: curl http://localhost:5000/test"

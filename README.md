@@ -67,7 +67,7 @@ data_processing:
 
 ### Integration
 
-All scripts (`src/utilities/data_prep.py`, `src/pipeline/train.py`, `src/scripts/score.py`) use the shared preprocessor, ensuring the same feature engineering pipeline throughout the ML lifecycle.
+All scripts (`src/pipeline/data_prep.py`, `src/pipeline/train.py`, `src/scripts/score.py`) use the shared preprocessor, ensuring the same feature engineering pipeline throughout the ML lifecycle.
 
 ## Project Structure
 
@@ -85,17 +85,18 @@ purchase-predictor-vibe/
 │   └── test_config.py           # Configuration validation and testing script
 ├── src/                         # Source code
 │   ├── pipeline/                # MLOps pipeline scripts
+│   │   ├── data_prep.py         # Data generation and preprocessing (Step 1)
 │   │   ├── train.py             # Model training script
 │   │   ├── register.py          # Model registration script
 │   │   ├── deploy_managed_endpoint.py  # Primary Azure ML managed endpoint deployment (with archival)
 │   │   ├── deploy_aci.py               # ACI-style deployment (cost-optimized)
 │   │   ├── deploy_azure_ml.py          # Azure ML integration verification
-│   ├── modules/                 # Shared modules
-│   │   └── preprocessing.py     # Shared preprocessing utilities
 │   ├── scripts/                 # Deployment scripts
 │   │   └── score.py             # Scoring script for endpoint
-│   └── utilities/               # Utility scripts
-│       └── data_prep.py         # Data generation and preprocessing
+│   └── utilities/               # Shared utilities
+│       ├── preprocessing.py     # Shared preprocessing utility class
+│       ├── endpoint_naming.py   # Endpoint naming utilities
+│       └── local_inference.py   # Local development server
 ├── context/                     # Project documentation
 │   ├── prd.md                   # Product Requirements
 │   ├── spec.md                  # Technical Specification
@@ -353,7 +354,7 @@ This creates a managed online endpoint with:
 For development, testing, or when Azure deployment isn't available:
 
 ```bash
-python src/scripts/local_inference.py
+python src/utilities/local_inference.py
 ```
 
 This starts a Flask-based local server with:
@@ -372,7 +373,7 @@ This starts a Flask-based local server with:
 
 ```bash
 # Start the local server
-python src/scripts/local_inference.py
+python src/utilities/local_inference.py
 
 # Test with curl (in another terminal)
 curl -X POST http://localhost:5000/predict \

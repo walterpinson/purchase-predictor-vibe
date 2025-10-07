@@ -10,7 +10,7 @@ from sklearn.model_selection import train_test_split
 import logging
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from src.modules.preprocessing import PurchaseDataPreprocessor, save_processed_data
+from src.utilities.preprocessing import PurchaseDataPreprocessor, save_processed_data
 from config.config_loader import load_config
 
 # Set up logging

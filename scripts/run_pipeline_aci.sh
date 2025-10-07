@@ -16,7 +16,7 @@ eval "$(conda shell.bash hook)"
 conda activate purchase-predictor-env
 
 echo "📊 Generating synthetic data..."
-python src/utilities/data_prep.py
+python src/pipeline/data_prep.py
 
 echo "🤖 Training model..."
 python src/pipeline/train.py

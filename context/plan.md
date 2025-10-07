@@ -17,9 +17,9 @@
   
 - Run `pip install -r requirements.txt`
 
-### 2. Data Preparation and Synthetic Data Creation ([data_prep.py])
+### 2. Data Preparation and Synthetic Data Creation (pipeline/data_prep.py)
 
-- Create a script using Python (`data_prep.py`) to **generate synthetic training and test data** matching the schema specified in your spec.
+- Create a script using Python (`pipeline/data_prep.py`) as **Step 1** of the ML pipeline to **generate synthetic training and test data** matching the schema specified in your spec.
   - Use Python libraries such as `faker` and `numpy` for realistic, well-distributed numerical and categorical values.
 - Save the generated datasets as `train.csv` and `test.csv` under `/sample_data`.
 - Load these synthetic CSV files for further preprocessing:

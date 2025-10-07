@@ -46,7 +46,7 @@ This project provides three different deployment approaches for your purchase pr
 
 **After deployment, start the inference server:**
 ```bash
-python src/scripts/local_inference.py
+python src/utilities/local_inference.py
 ```
 
 **Test predictions:**

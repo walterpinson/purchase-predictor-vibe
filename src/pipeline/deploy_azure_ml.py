@@ -75,7 +75,7 @@ def create_deployment_metadata(config, registration_info, model):
             'subscription_id': config['azure']['subscription_id']
         },
         'local_server': {
-            'scoring_script': 'src/scripts/local_inference.py',
+            'scoring_script': 'src/utilities/local_inference.py',
             'port': 5000,
             'health_endpoint': 'http://localhost:5000/health',
             'predict_endpoint': 'http://localhost:5000/predict',
@@ -89,7 +89,7 @@ def create_deployment_metadata(config, registration_info, model):
         },
         'status': 'ready_for_local_serving',
         'instructions': {
-            'start_server': 'python src/scripts/local_inference.py',
+            'start_server': 'python src/utilities/local_inference.py',
             'test_prediction': 'curl http://localhost:5000/test',
             'make_prediction': 'curl -X POST http://localhost:5000/predict -H "Content-Type: application/json" -d \'{"data": [[25.99, 4, 0, 1]]}\''
         }
@@ -163,7 +163,7 @@ def main():
     print(f"✅ Resource Group: {config['azure']['resource_group']}")
     print("")
     print("🖥️  LOCAL INFERENCE SERVER SETUP:")
-    print("   Start server: python src/scripts/local_inference.py")
+    print("   Start server: python src/utilities/local_inference.py")
     print("   Health check: curl http://localhost:5000/health")
     print("   Test predict:  curl http://localhost:5000/test")
     print("")
@@ -173,7 +173,7 @@ def main():
     print(f"   - Local server provides same functionality as Azure endpoints")
     print("")
     print("📊 NEXT STEPS:")
-    print("   1. Run: python src/scripts/local_inference.py")
+    print("   1. Run: python src/utilities/local_inference.py")
     print("   2. Test: curl http://localhost:5000/test")
     print("   3. Use the local API for predictions")
     print("   4. Monitor model performance and retrain as needed")

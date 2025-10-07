@@ -15,7 +15,7 @@ from datetime import datetime
 
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from src.modules.preprocessing import PurchaseDataPreprocessor
+from src.utilities.preprocessing import PurchaseDataPreprocessor
 from config.config_loader import load_config
 
 # Set up logging
