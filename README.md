@@ -76,9 +76,14 @@ purchase-predictor-vibe/
 ├── README.md                    # This file
 ├── requirements.txt             # Python dependencies
 ├── conda.yaml                   # Environment definition
-├── run_pipeline.sh              # Complete pipeline execution script
 ├── .env.local                   # Environment variables (not in git)
 ├── .gitignore                   # Git ignore file
+├── scripts/                     # Project management scripts
+│   ├── run_pipeline.sh          # Complete pipeline execution script
+│   ├── run_pipeline_aci.sh      # ACI-style deployment pipeline
+│   ├── run_pipeline_local.sh    # Local development pipeline
+│   ├── cleanup_endpoint.sh      # Endpoint cleanup utility
+│   └── fix_environment.sh       # Environment setup utility
 ├── config/                      # Configuration and utilities
 │   ├── config.yaml              # Configuration settings
 │   ├── config_loader.py         # Shared configuration loader utility (uses piny)
