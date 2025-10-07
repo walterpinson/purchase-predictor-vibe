@@ -97,9 +97,44 @@ curl http://localhost:5000/test
 ## 🔧 **Common Issues & Solutions**
 
 ### **Resource Provider Registration Errors**
-If you see `SubscriptionNotRegistered` errors:
+
+Azure ML managed endpoints require several resource providers to be registered with your subscription. If you encounter `SubscriptionNotRegistered` errors, you need to register these providers:
+
+#### **Required Resource Providers (Standard):**
+```bash
+az provider register --namespace Microsoft.MachineLearningServices
+az provider register --namespace Microsoft.ContainerInstance  
+az provider register --namespace Microsoft.Storage
+az provider register --namespace Microsoft.KeyVault
+az provider register --namespace Microsoft.ContainerRegistry
+az provider register --namespace Microsoft.Compute
+az provider register --namespace Microsoft.Network
+```
+
+#### **Additional Resource Providers (Discovered During Deployment):**
+These additional providers were found to be required in some cases:
+```bash
+az provider register --namespace Microsoft.PolicyInsights
+az provider register --namespace Microsoft.Cdn  # Note: "Cdn" not "Cnd" (typo in some docs)
+az provider register --namespace Microsoft.ServiceBus
+az provider register --namespace Microsoft.Relay
+az provider register --namespace Microsoft.EventHub
+```
+
+#### **Check Registration Status:**
+```bash
+# Check all at once
+az provider list --query "[?namespace=='Microsoft.MachineLearningServices' || namespace=='Microsoft.PolicyInsights' || namespace=='Microsoft.Cdn'].{Namespace:namespace, State:registrationState}" -o table
+
+# Check individual provider
+az provider show --namespace Microsoft.MachineLearningServices --query registrationState -o tsv
+```
+
+#### **Alternative Solution:**
+If you continue to see resource provider issues:
 - Use `run_pipeline_local.sh` instead
 - This bypasses managed endpoint limitations
+- Provides Azure ML integration with local inference server
 
 ### **Endpoint Naming Issues**
 - Endpoint names must be ≤ 32 characters

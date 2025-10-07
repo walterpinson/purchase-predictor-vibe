@@ -24,6 +24,9 @@ check_and_register_providers() {
         "Microsoft.ServiceBus"
         "Microsoft.Relay"
         "Microsoft.EventHub"
+        # Additional providers discovered during deployment troubleshooting
+        "Microsoft.PolicyInsights"
+        "Microsoft.Cdn"
     )
     
     for provider in "${providers[@]}"; do
