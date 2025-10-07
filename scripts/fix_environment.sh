@@ -4,6 +4,11 @@
 echo "🔧 Fixing Purchase Predictor Environment"
 echo "========================================"
 
+# Deactivate current environment and return to base
+echo "0. Deactivating current environment and returning to base..."
+conda deactivate 2>/dev/null || true
+conda activate base
+
 # Remove the corrupted environment
 echo "1. Removing corrupted environment..."
 conda env remove -n purchase-predictor-env -y

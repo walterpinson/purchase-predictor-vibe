@@ -286,12 +286,12 @@ def create_optimized_environment(ml_client, config):
     
     logger.info(f"🐳 Creating deployment environment: {environment_name}")
     
-    # Create environment with curated base image
+    # Create environment with modern base image that supports NumPy 2.x
     environment = Environment(
         name=environment_name,
-        description="Optimized environment for purchase predictor managed endpoint",
+        description="Modern environment for purchase predictor managed endpoint with NumPy 2.x support",
         conda_file="conda.yaml",
-        image="mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04:latest"
+        image="mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04:latest"  # More modern Ubuntu base
     )
     
     try:
