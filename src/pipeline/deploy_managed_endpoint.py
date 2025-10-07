@@ -342,7 +342,7 @@ def create_optimized_deployment(ml_client, config, registration_info, endpoint, 
             code=server_dir,  # Use the prepared server directory
             scoring_script="score.py"
         ),
-        instance_type="Standard_DS2_v2",  # Reliable instance type
+        instance_type="Standard_DS1_v2",  # Smaller instance type to fit quota constraints
         instance_count=1,
         tags={
             "model_name": model_name,
@@ -494,7 +494,7 @@ def get_hosted_endpoint_details(ml_client, config, endpoint_name):
         print("�🏗️ DEPLOYMENT DETAILS:")
         print(f"   Deployment Name: {actual_deployment_name}")
         print(f"   Original Config Name: {original_deployment_name}")
-        print(f"   Instance Type: Standard_DS2_v2")
+        print(f"   Instance Type: Standard_DS1_v2")
         print(f"   Instance Count: 1")
         print("")
         print("🚀 Your model is now hosted on Azure ML Studio managed infrastructure!")
