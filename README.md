@@ -104,6 +104,11 @@ purchase-predictor-vibe/
 │   ├── train.csv
 │   └── test.csv
 ├── processed_data/              # Preprocessed data
+├── server/                      # Deployment artifacts (auto-generated)
+│   ├── score.py                 # Current deployment scoring script  
+│   ├── preprocessing.py         # Current deployment preprocessing
+│   ├── deployment_info.json     # Current deployment metadata
+│   └── archives/                # Timestamped deployment archives
 └── models/                      # Model artifacts
     ├── model.pkl
     ├── label_encoder.pkl
@@ -287,11 +292,14 @@ python src/pipeline/register.py
 python src/pipeline/deploy_managed_endpoint.py
 ```
 
-- Creates managed online endpoint
+- Creates managed online endpoint with **automated deployment archival system**
 - Sets up custom environment
 - Deploys model with scoring script
-- Configures endpoint settings
+- Configures endpoint settings  
 - Tests deployment with sample data
+- Archives previous deployments for rollback and debugging
+
+**📁 Deployment Archival**: All deployment files are automatically archived with timestamps in `/server/archives/` for operational intelligence. See `DEPLOYMENT_GUIDE.md` for complete archival system documentation.
 
 ### Advanced Configuration Options
 

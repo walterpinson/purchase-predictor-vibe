@@ -138,3 +138,110 @@ If you see `SubscriptionNotRegistered` errors:
 4. **Monitor and iterate** through Azure ML Studio
 
 All approaches provide production-ready deployment with full Azure ML integration! 🎉
+
+---
+
+## 🗃️ **Deployment Archival System**
+
+All deployment scripts include an **automated archival system** that manages deployment artifacts and provides operational intelligence for debugging and rollback purposes.
+
+### **How It Works**
+
+When you run any deployment script, the system:
+
+1. **Creates a `/server` directory** with clean deployment artifacts
+2. **Archives previous deployments** with timestamps before deploying new ones  
+3. **Copies deployment files** (`score.py`, `preprocessing.py`) to the server directory
+4. **Simplifies imports** for Azure ML container compatibility
+5. **Tracks deployment metadata** for operational intelligence
+
+### **Directory Structure**
+
+```bash
+server/                              # Active deployment directory
+├── score.py                         # Current scoring script
+├── preprocessing.py                 # Current preprocessing module  
+├── deployment_info.json             # Current deployment metadata
+└── archives/                        # Historical deployments
+    ├── 2025-10-06_14-30-15/        # Previous deployment archive
+    │   ├── score.py                 # Archived scoring script
+    │   ├── preprocessing.py         # Archived preprocessing
+    │   ├── deployment_info.json     # Archived metadata
+    │   └── archive_info.json        # Archive metadata
+    └── 2025-10-06_15-45-22/        # Another archive
+        └── ...
+```
+
+### **Archival Management Commands**
+
+Use the `server_manager.py` utility for archival management:
+
+```bash
+# List all deployment archives with metadata
+python server_manager.py list
+
+# Show current deployment status and files
+python server_manager.py current
+
+# Display complete server directory structure
+python server_manager.py structure
+
+# Clean old archives (keeps 5 most recent)
+python server_manager.py clean
+
+# Prepare fresh deployment environment
+python server_manager.py fresh
+```
+
+### **Benefits**
+
+- **🐛 Debugging**: Compare current vs previous deployments when issues arise
+- **🔄 Rollback**: Previous deployment files are preserved for emergency rollback  
+- **📊 Operational Intelligence**: Track deployment history and changes over time
+- **🧹 Dependency Management**: Clean separation between development and deployment files
+- **🔍 Troubleshooting**: Easy access to deployment artifacts that were actually used
+
+### **Archive Metadata**
+
+Each archive includes rich metadata for troubleshooting:
+
+```json
+{
+  "deployed_at": "2025-10-06_14-30-15",
+  "deployment_files": ["score.py", "preprocessing.py"],
+  "source_info": {
+    "score_script_source": "src/scripts/score.py",
+    "preprocessing_source": "src/modules/preprocessing.py"
+  },
+  "deployment_type": "azure_ml_managed_endpoint",
+  "archive_location": "server/archives/2025-10-06_14-30-15"
+}
+```
+
+### **Automatic Cleanup**
+
+- Archives are automatically created before each new deployment
+- Use `python server_manager.py clean` to remove old archives  
+- Keeps the 5 most recent archives by default
+- Manual cleanup preserves deployment history with timestamped archives
+
+### **Import Simplification**
+
+The archival system solves the **Azure ML container dependency issue** by:
+
+- Copying both `score.py` and `preprocessing.py` to the same `/server` directory
+- Enabling simple local imports: `from preprocessing import PurchaseDataPreprocessor`
+- Eliminating complex `sys.path` manipulation that fails in Azure containers
+- Ensuring deployment artifacts are self-contained and portable
+
+### **Troubleshooting with Archives**
+
+When deployments fail or behave unexpectedly:
+
+1. **Check current deployment**: `python server_manager.py current`
+2. **Compare with previous**: `python server_manager.py list`
+3. **Examine specific archive**: Look in `server/archives/{timestamp}/`
+4. **Verify file changes**: Diff current vs archived versions
+5. **Rollback if needed**: Copy files from working archive back to `/server`
+
+This archival system ensures **deployment reliability**, **operational visibility**, and **easy troubleshooting** across all deployment approaches!
