@@ -122,7 +122,7 @@ def prepare_deployment_artifacts():
             'archived_files': archived_files,
             'source_info': {
                 'score_script_source': 'src/scripts/score.py',
-                'preprocessing_source': 'src/modules/preprocessing.py'
+                'preprocessing_source': 'src/utilities/preprocessing.py'
             }
         }
         
@@ -141,10 +141,10 @@ def prepare_deployment_artifacts():
     logger.info("✅ Copied src/scripts/score.py -> server/score.py")
     
     # Copy preprocessing.py
-    if not os.path.exists('src/modules/preprocessing.py'):
-        raise FileNotFoundError("Preprocessing module not found at src/modules/preprocessing.py")
-    shutil.copy2('src/modules/preprocessing.py', 'server/preprocessing.py')
-    logger.info("✅ Copied src/modules/preprocessing.py -> server/preprocessing.py")
+    if not os.path.exists('src/utilities/preprocessing.py'):
+        raise FileNotFoundError("Preprocessing module not found at src/utilities/preprocessing.py")
+    shutil.copy2('src/utilities/preprocessing.py', 'server/preprocessing.py')
+    logger.info("✅ Copied src/utilities/preprocessing.py -> server/preprocessing.py")
     
     logger.info("🔧 Score.py already configured with simple imports for deployment")
     
@@ -154,7 +154,7 @@ def prepare_deployment_artifacts():
         'deployment_files': ['score.py', 'preprocessing.py'],
         'source_info': {
             'score_script_source': 'src/scripts/score.py',
-            'preprocessing_source': 'src/modules/preprocessing.py'
+            'preprocessing_source': 'src/utilities/preprocessing.py'
         },
         'deployment_type': 'azure_ml_managed_endpoint',
         'archive_location': archive_dir if archived_files else None

@@ -28,7 +28,7 @@ deployment:
   deployment_name: "purchase-predictor-deployment"
   environment_name: "purchase-predictor-env"
   instance_type: "Standard_DS2_v2"
-  instance_count: 1
+  instance_count: 2
   # Regional deployment options
   region: "eastus"  # Target region for endpoint deployment
   # Available regions: eastus, westus2, centralus, northeurope, etc.
