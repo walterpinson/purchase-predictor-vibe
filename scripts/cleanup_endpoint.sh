@@ -15,12 +15,30 @@ config = load_config()
 print(config['deployment']['endpoint_name'])
 ")
 
+RESOURCE_GROUP=$(python -c "
+import sys
+sys.path.append('.')
+from config.config_loader import load_config
+config = load_config()
+print(config['azure']['resource_group'])
+")
+
+WORKSPACE_NAME=$(python -c "
+import sys
+sys.path.append('.')
+from config.config_loader import load_config
+config = load_config()
+print(config['azure']['workspace_name'])
+")
+
 echo "Endpoint name: $ENDPOINT_NAME"
+echo "Resource group: $RESOURCE_GROUP"
+echo "Workspace name: $WORKSPACE_NAME"
 echo ""
 
 # Check current endpoint status
 echo "📊 Checking current endpoint status..."
-az ml online-endpoint show --name $ENDPOINT_NAME --resource-group rg-ml-dojo --workspace-name ws-ml-dojo --query "{Name:name, State:provisioning_state, Traffic:traffic}" --output table 2>/dev/null
+az ml online-endpoint show --name $ENDPOINT_NAME --resource-group $RESOURCE_GROUP --workspace-name $WORKSPACE_NAME --query "{Name:name, State:provisioning_state, Traffic:traffic}" --output table 2>/dev/null
 
 if [ $? -eq 0 ]; then
     echo ""
@@ -29,7 +47,7 @@ if [ $? -eq 0 ]; then
     
     if [[ "$response" =~ ^[Yy]$ ]]; then
         echo "🗑️  Deleting endpoint: $ENDPOINT_NAME"
-        az ml online-endpoint delete --name $ENDPOINT_NAME --resource-group rg-ml-dojo --workspace-name ws-ml-dojo --yes
+        az ml online-endpoint delete --name $ENDPOINT_NAME --resource-group $RESOURCE_GROUP --workspace-name $WORKSPACE_NAME --yes
         
         if [ $? -eq 0 ]; then
             echo "✅ Endpoint deleted successfully"
@@ -47,4 +65,4 @@ fi
 
 echo ""
 echo "📋 To manually check endpoints:"
-echo "   az ml online-endpoint list --resource-group rg-ml-dojo --workspace-name ws-ml-dojo --output table"
+echo "   az ml online-endpoint list --resource-group $RESOURCE_GROUP --workspace-name $WORKSPACE_NAME --output table"
