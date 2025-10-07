@@ -103,7 +103,8 @@ purchase-predictor-vibe/
 │       ├── endpoint_naming.py   # Endpoint naming utilities
 │       ├── local_inference.py   # Local development server
 │       ├── server_manager.py    # Deployment archival management
-│       └── test_regional_config.py  # Regional deployment testing
+│       ├── test_regional_config.py  # Regional deployment testing
+│       └── debug_config.py      # Configuration loading debugging
 ├── context/                     # Project documentation
 │   ├── prd.md                   # Product Requirements
 │   ├── spec.md                  # Technical Specification
