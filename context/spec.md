@@ -31,10 +31,8 @@
           |- train.py
           |- register.py
           |- deploy_managed_endpoint.py  # Primary deployment (with archival)
-          |- deploy_aci.py             # ACI-style deployment  
-          |- deploy_managed_endpoint.py
-          |- deploy_aci.py
-          |- deploy_azure_ml.py        # Azure ML integration
+          |- deploy_aci.py               # ACI-style deployment  
+          |- deploy_azure_ml.py          # Azure ML integration
       |- modules/
           |- preprocessing.py
       |- scripts/
