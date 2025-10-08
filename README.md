@@ -13,10 +13,11 @@ Before starting, verify you have:
 - [ ] **Azure ML extension** installed (`az extension show --name ml`)
 - [ ] **Bash shell** available (required for pipeline scripts)
 - [ ] **Azure subscription** access (`az account show`)
-- [ ] **Resource Group** and **ML Workspace** provisioned
+- [ ] **Azure Resource Providers** registered for ML services
+- [ ] **Resource Group** and **ML Workspace** with Container Registry
 - [ ] **Git** for cloning the repository
 
-> **❌ Missing requirements?** → See [Prerequisites](#prerequisites) section below for setup instructions.
+> **❌ Missing requirements?** → See [Prerequisites](#prerequisites) section below for basic setup or [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md#azure-resource-providers-and-setup) for complete Azure configuration.
 
 Get the Purchase Predictor running in minutes with our automated pipeline:
 
@@ -260,33 +261,23 @@ az login
 az account show
 ```
 
-#### Azure Resources (Required)
+#### Azure Resource Setup
 
-You need these Azure resources **already provisioned**:
+This project requires specific Azure resources, resource providers, and proper workspace configuration.
 
-1. **Resource Group**
-   ```bash
-   # Create if needed
-   az group create --name "rg-ml-dojo-00" --location "eastus"
-   ```
-
-2. **Azure Machine Learning Workspace**
-   ```bash
-   # Create if needed
-   az ml workspace create --name "ws-ml-dojo-00" --resource-group "rg-ml-dojo-00"
-   ```
-
-**Get Your Azure Information:**
+**Quick Setup Commands:**
 ```bash
-# Get subscription ID (needed for .env.local)
+# Get your subscription info (needed for .env.local)
 az account show --query id --output tsv
 
-# List resource groups
+# List existing resources
 az group list --query "[].name" --output table
-
-# List ML workspaces
 az ml workspace list --query "[].{Name:name, ResourceGroup:resource_group}" --output table
 ```
+
+> **⚠️ Important**: Azure ML requires Container Registry and specific resource provider registrations. This project needs a properly configured workspace with all dependencies.
+
+> **📚 Complete Setup Guide**: See [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md#azure-resource-providers-and-setup) for detailed Azure resource creation, provider registration, and workspace configuration instructions.
 
 ### 4. Bash Shell Requirements
 
