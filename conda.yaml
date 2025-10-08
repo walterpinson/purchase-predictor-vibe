@@ -4,25 +4,23 @@ channels:
   - defaults
 dependencies:
   - python=3.9
-  - pip=21.3.1
+  - pip
+  - numpy=1.24.3  # Stable version compatible with Azure ML
+  - pandas=2.0.3  # Stable modern version
+  - scikit-learn=1.3.0  # Stable version
+  - joblib=1.3.0
   - pip:
-    # Core ML and Azure dependencies (using modern versions)
-    - azure-ai-ml>=1.0.0
-    - mlflow>=2.0.0
-    - scikit-learn>=1.5.0  # Modern version compatible with NumPy 2.x
-    - pandas>=2.0.0        # Modern pandas
-    - numpy>=2.0.0         # Modern NumPy with performance improvements
-    - joblib>=1.3.0        # Compatible with modern NumPy
-    - PyYAML>=6.0.0
-    - azure-identity>=1.7.0
+    # Core Azure ML dependencies (minimal set to avoid conflicts)
+    - azure-ai-ml>=1.8.0
+    - mlflow>=2.5.0
+    - azure-identity>=1.13.0
     - python-dotenv>=1.0.0
     - piny>=1.1.0
     # Azure ML managed endpoint dependencies (CRITICAL for deployment)
     - azureml-inference-server-http>=1.0.0
     - azureml-defaults>=1.0.0
-    # Azure SDK dependencies
-    - typing-extensions>=4.0.0
-    - msrest>=0.6.0
+    # Use PyYAML instead of ruamel.yaml to avoid conflicts
+    - PyYAML>=6.0
     # Local inference server dependencies
     - flask>=2.3.0
     - flask-cors>=4.0.0
