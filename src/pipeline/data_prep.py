@@ -48,22 +48,22 @@ def generate_synthetic_data(n_samples=500):
         previously_purchased = np.random.choice(['yes', 'no'], p=[0.3, 0.7])
         
         # Generate label based on features (with some noise)
-        # Higher rating, lower price, and previous purchase increase likelihood
-        prob_like = 0.1  # Base probability
+        # Higher rating, lower price, and previous purchase increase purchase likelihood
+        prob_purchase = 0.1  # Base probability
         if user_rating >= 4:
-            prob_like += 0.4
+            prob_purchase += 0.4
         if price < 50:
-            prob_like += 0.3
+            prob_purchase += 0.3
         elif price < 100:
-            prob_like += 0.1
+            prob_purchase += 0.1
         if previously_purchased == 'yes':
-            prob_like += 0.2
+            prob_purchase += 0.2
             
         # Add some randomness
-        prob_like += np.random.normal(0, 0.1)
-        prob_like = np.clip(prob_like, 0.05, 0.95)
+        prob_purchase += np.random.normal(0, 0.1)
+        prob_purchase = np.clip(prob_purchase, 0.05, 0.95)
         
-        label = 1 if np.random.random() < prob_like else 0
+        label = 1 if np.random.random() < prob_purchase else 0
         
         data.append({
             'price': round(price, 2),
