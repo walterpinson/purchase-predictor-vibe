@@ -473,17 +473,17 @@ When you make a prediction request, the API returns a JSON response with predict
 
 - **Values**: `0` or `1` for each input sample
 - **Meaning**:
-  - `0` = **Not Liked** (user will not like this product)
-  - `1` = **Liked** (user will like this product)
-- **Example**: `[1, 1]` means both products are predicted to be liked
+  - `0` = **Not Purchased** (user will not purchase this product)
+  - `1` = **Purchased** (user will purchase this product)
+- **Example**: `[1, 1]` means both products are predicted to be purchased
 
 #### **`probabilities`** (array of arrays)
 
-- **Format**: Each inner array contains `[probability_not_liked, probability_liked]`
+- **Format**: Each inner array contains `[probability_not_purchased, probability_purchased]`
 - **Values**: Decimal numbers between 0.0 and 1.0 that sum to 1.0
 - **Meaning**:
-  - **First number**: Probability the user will **NOT like** the product (class 0)
-  - **Second number**: Probability the user **WILL like** the product (class 1)
+  - **First number**: Probability the user will **NOT purchase** the product (class 0)
+  - **Second number**: Probability the user **WILL purchase** the product (class 1)
 
 ### Detailed Example Interpretation
 
@@ -491,20 +491,20 @@ For the response above:
 
 **Sample 1: `[25.99, 4, 1, 1]` (Low price, high rating, electronics, previous customer)**
 
-- **Prediction**: `1` (Liked)
+- **Prediction**: `1` (Purchased)
 - **Probabilities**: `[0.024, 0.976]`
 - **Interpretation**:
-  - 2.4% chance user will NOT like it
-  - **97.6% chance user WILL like it** ✅
-  - **High confidence** prediction (very likely to be liked)
+  - 2.4% chance user will NOT purchase it
+  - **97.6% chance user WILL purchase it** ✅
+  - **High confidence** prediction (very likely to be purchased)
 
 **Sample 2: `[150.00, 2, 0, 0]` (High price, low rating, books, new customer)**
 
-- **Prediction**: `1` (Liked)
+- **Prediction**: `1` (Purchased)
 - **Probabilities**: `[0.482, 0.518]`
 - **Interpretation**:
-  - 48.2% chance user will NOT like it
-  - **51.8% chance user WILL like it** ✅
+  - 48.2% chance user will NOT purchase it
+  - **51.8% chance user WILL purchase it** ✅
   - **Low confidence** prediction (borderline case, close to 50/50)
 
 ### Confidence Levels
@@ -517,7 +517,7 @@ Use the probability values to assess prediction confidence:
 | 0.7 - 0.9 | **High** | Good recommendation |
 | 0.6 - 0.7 | **Medium** | Moderate recommendation |
 | 0.5 - 0.6 | **Low** | Weak recommendation, consider alternatives |
-| 0.0 - 0.5 | **Not Recommended** | User likely won't like this product |
+| 0.0 - 0.5 | **Not Recommended** | User likely won't purchase this product |
 
 ### Using Probabilities in Your Application
 
@@ -532,20 +532,20 @@ response = {
 }
 
 for i, (prediction, probs) in enumerate(zip(response["predictions"], response["probabilities"])):
-    prob_not_liked, prob_liked = probs
+    prob_not_purchased, prob_purchased = probs
     
     print(f"Product {i+1}:")
-    print(f"  Prediction: {'Liked' if prediction == 1 else 'Not Liked'}")
+    print(f"  Prediction: {'Purchased' if prediction == 1 else 'Not Purchased'}")
     print(f"  Confidence: {max(probs):.1%}")
     
-    if prob_liked > 0.8:
+    if prob_purchased > 0.8:
         print(f"  Recommendation: Strong buy recommendation!")
-    elif prob_liked > 0.6:
+    elif prob_purchased > 0.6:
         print(f"  Recommendation: Good choice")
-    elif prob_liked > 0.5:
-        print(f"  Recommendation: Might like it")
+    elif prob_purchased > 0.5:
+        print(f"  Recommendation: Might purchase it")
     else:
-        print(f"  Recommendation: Probably won't like it")
+        print(f"  Recommendation: Probably won't purchase it")
 ```
 
 ### Error Responses

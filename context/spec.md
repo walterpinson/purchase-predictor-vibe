@@ -69,7 +69,7 @@ Below is an addendum for the training and test data sets and their schema, which
 
 ### Data Set Overview
 
-The project uses tabular CSV data featuring product attributes and user interactions to train and evaluate a binary classifier for predicting user preference (like/dislike) for products.
+The project uses tabular CSV data featuring product attributes and user interactions to train and evaluate a binary classifier for predicting purchase behavior (purchase/no purchase) for products.
 
 ### Data Schema
 
@@ -79,7 +79,7 @@ The project uses tabular CSV data featuring product attributes and user interact
 | user_rating          | integer   | User rating for the product (scale 1–5)             | 4, 2, 5, 3                  |
 | category             | string    | Product category                                    | electronics, books, clothes |
 | previously_purchased | string    | Whether user has bought from this category before    | yes, no                     |
-| label                | integer   | Target: 1 if liked, 0 if not                        | 1, 0                        |
+| label                | integer   | Target: 1 if purchased, 0 if not                    | 1, 0                        |
 
 ### Example Training Data (CSV)
 
@@ -91,7 +91,7 @@ price,user_rating,category,previously_purchased,label
 8.49,3,electronics,no,0
 ```
 
-Use at least 20–30 rows for training. All columns except "label" are input features; "label" is the prediction target.
+Use at least 20–30 rows for training. All columns except "label" are input features; "label" is the purchase target (1 = purchased, 0 = not purchased).
 
 ### Example Test Data (CSV)
 
