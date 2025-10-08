@@ -5,6 +5,7 @@ azure:
   subscription_id: "${AZURE_SUBSCRIPTION_ID}"
   resource_group: "${AZURE_RESOURCE_GROUP}"
   workspace_name: "${AZURE_WORKSPACE_NAME}"
+  location: "${AZURE_LOCATION:eastus}"  # Default to eastus if not set
 
 # Model Configuration
 model:
@@ -13,9 +14,10 @@ model:
 
 # MLFlow Configuration
 mlflow:
-  experiment_name: "purchase_predictor"
+  experiment_name: "${EXPERIMENT_NAME:purchase_predictor}"
   run_name: "training_run"
-  registered_model_name: "purchase_predictor_model"
+  registered_model_name: "${MODEL_NAME:purchase_predictor_model}"
+  tracking_uri: "${MLFLOW_TRACKING_URI:file:./mlruns}"
 
 # Model Registration
 model_registration:
@@ -24,15 +26,15 @@ model_registration:
 
 # Deployment Configuration
 deployment:
-  endpoint_name: "purchase-predictor-endpoint"
-  deployment_name: "purchase-predictor-deployment"
+  endpoint_name: "${ENDPOINT_NAME:purchase-predictor-endpoint}"
+  deployment_name: "${DEPLOYMENT_NAME:purchase-predictor-deployment}"
   environment_name: "purchase-predictor-env"
   instance_type: "Standard_DS2_v2"
   instance_count: 2
   # Regional deployment options
-  region: "eastus"  # Target region for endpoint deployment
+  region: "${AZURE_LOCATION:eastus}"  # Target region for endpoint deployment
   # Available regions: eastus, westus2, centralus, northeurope, etc.
-  # Leave empty to use workspace region
+  # Uses AZURE_LOCATION from environment or defaults to eastus
 
 # Data Configuration
 data:
