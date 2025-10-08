@@ -114,7 +114,7 @@ def run(raw_data):
             response['probabilities'] = probabilities.tolist()
         
         logger.info(f"Generated predictions: {response}")
-        return json.dumps(response)
+        return response  # Return Python dict, not JSON string
         
     except Exception as e:
         logger.error(f"Error during prediction: {str(e)}")
@@ -122,7 +122,7 @@ def run(raw_data):
             'error': str(e),
             'message': 'Prediction failed'
         }
-        return json.dumps(error_response)
+        return error_response  # Return Python dict, not JSON string
 
 def preprocess_raw_input(df):
     """
@@ -188,8 +188,8 @@ if __name__ == "__main__":
     
     print("Testing with raw data:")
     result = run(test_data_raw)
-    print(result)
+    print(json.dumps(result, indent=2))  # Pretty print the actual JSON
     
     print("\nTesting with processed data:")
     result = run(test_data_processed)
-    print(result)
+    print(json.dumps(result, indent=2))  # Pretty print the actual JSON
