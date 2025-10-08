@@ -51,11 +51,30 @@ curl -X POST "https://your-endpoint-uri.azure.com/score" \
 
 **That's it!** 🎉 You now have a production-ready ML model deployed on Azure.
 
+### 4. **Alternative: Run Local Inference Server**
+
+If you prefer to test locally without Azure deployment:
+
+```bash
+# Run local inference server instead
+bash scripts/run_pipeline_local.sh
+
+# Test local server
+curl http://localhost:5000/test
+
+# Make predictions locally
+curl -X POST "http://localhost:5000/predict" \
+     -H "Content-Type: application/json" \
+     -d '{"data": [[25.99, 4, "electronics", "yes"]]}'
+```
+
+This runs a local Flask server for development and testing without requiring Azure resources.
+
 ---
 
 ## 🎓 Educational Purpose
 
-This project serves as a **comprehensive learning resource** for modern MLOps practices, demonstrating:
+This project serves as a **simplified demonstration** of modern MLOps practices, showing:
 
 ### **Azure ML SDK v2 Integration**
 - Complete MLOps pipeline with modern Azure ML practices
@@ -82,7 +101,7 @@ This project serves as a **comprehensive learning resource** for modern MLOps pr
 - Missing data handling strategies
 - Binary classification with probability scores
 
-**Perfect for:** Data scientists learning MLOps, developers exploring Azure ML, and teams implementing production ML pipelines.
+**Perfect for:** Data scientists learning MLOps basics, developers exploring Azure ML, and teams prototyping production ML pipelines.
 
 ---
 
@@ -219,7 +238,7 @@ AZURE_WORKSPACE_NAME=your-workspace-name
 - Data validation and quality checks
 - Missing data handling strategies
 
-**This project demonstrates real-world MLOps patterns used in production environments.**
+**This project demonstrates basic MLOps patterns that can be extended for production environments.**
 
 ---
 
