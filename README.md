@@ -4,6 +4,21 @@ A complete end-to-end machine learning project for training and deploying a bina
 
 ## 🚀 Quick Start
 
+### ✅ Pre-Flight Checklist
+
+Before starting, verify you have:
+
+- [ ] **Conda** installed and in PATH (`conda --version`)
+- [ ] **Azure CLI** installed (`az --version`)  
+- [ ] **Azure ML extension** installed (`az extension show --name ml`)
+- [ ] **Bash shell** available (required for pipeline scripts)
+- [ ] **Azure subscription** access (`az account show`)
+- [ ] **Azure Resource Providers** registered for ML services
+- [ ] **Resource Group** and **ML Workspace** with Container Registry
+- [ ] **Git** for cloning the repository
+
+> **❌ Missing requirements?** → See [Prerequisites](#prerequisites) section below for basic setup or [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md#azure-resource-providers-and-setup) for complete Azure configuration.
+
 Get the Purchase Predictor running in minutes with our automated pipeline:
 
 ### 1. **Set Up Environment**
@@ -181,6 +196,128 @@ python src/pipeline/deploy_managed_endpoint.py  # Deploy
 2. **Configuration**: See [CONFIGURATION.md](docs/CONFIGURATION.md)
 3. **API Integration**: Review [API_REFERENCE.md](docs/API_REFERENCE.md)
 4. **Deployment Problems**: Consult [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)
+
+---
+
+## 📋 Prerequisites
+
+Before running this project, ensure you have the following:
+
+### 1. System Requirements
+
+- **Python 3.9+** installed on your system
+- **Git** for cloning the repository
+- **Bash shell** (Linux/macOS native, Windows via WSL/Git Bash)
+
+### 2. Conda Installation
+
+This project uses Conda for dependency management. Install Conda if you don't have it:
+
+**Option A: Miniconda (Recommended)**
+```bash
+# macOS with Homebrew
+brew install miniconda
+
+# Windows 
+# Download from: https://docs.conda.io/en/latest/miniconda.html
+
+# Linux
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+```
+
+**Verify Installation:**
+```bash
+conda --version
+# Should display conda version (e.g., conda 23.7.4)
+```
+
+### 3. Azure Requirements
+
+#### Azure CLI and ML Extension
+```bash
+# Install Azure CLI
+# macOS: brew install azure-cli
+# Windows: winget install Microsoft.AzureCLI  
+# Linux: curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+# Verify Azure CLI
+az --version
+
+# Install ML extension
+az extension add --name ml
+
+# Verify ML extension
+az extension show --name ml
+```
+
+#### Azure Authentication
+```bash
+# Login to Azure
+az login
+# This will open a browser for authentication
+
+# Verify access
+az account show
+```
+
+#### Azure Resource Setup
+
+This project requires specific Azure resources, resource providers, and proper workspace configuration.
+
+**Quick Provider Check:**
+```bash
+# Use the included script to verify all requirements
+./scripts/check_azure_providers.sh
+```
+
+**Quick Setup Commands:**
+```bash
+# Get your subscription info (needed for .env.local)
+az account show --query id --output tsv
+
+# List existing resources
+az group list --query "[].name" --output table
+az ml workspace list --query "[].{Name:name, ResourceGroup:resource_group}" --output table
+```
+
+> **⚠️ Important**: Azure ML requires Container Registry and specific resource provider registrations. This project needs a properly configured workspace with all dependencies.
+
+> **📚 Complete Setup Guide**: See [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md#azure-resource-providers-and-setup) for detailed Azure resource creation, provider registration, and workspace configuration instructions.
+
+### 4. Bash Shell Requirements
+
+**Linux/macOS:** Bash is available by default
+
+**Windows Options:**
+- **Git Bash** (comes with Git for Windows) - Recommended
+- **WSL** (Windows Subsystem for Linux) 
+- **PowerShell** with bash compatibility
+
+### 5. Common Setup Issues
+
+**Conda not in PATH:**
+```bash
+# Add to your shell profile (.bashrc, .zshrc, etc.)
+export PATH="$HOME/miniconda3/bin:$PATH"
+source ~/.bashrc  # or restart terminal
+```
+
+**Azure CLI not authenticated:**
+```bash
+az login --tenant YOUR_TENANT_ID
+```
+
+**Missing Azure ML extension:**
+```bash
+az extension add --name ml --upgrade
+```
+
+**Bash not available (Windows):**
+```bash
+# Install Git for Windows (includes Git Bash)
+# Download from: https://git-scm.com/download/win
+```
 
 ---
 

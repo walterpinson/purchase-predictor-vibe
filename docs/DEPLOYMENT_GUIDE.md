@@ -15,6 +15,16 @@ The Purchase Predictor supports multiple deployment strategies to accommodate di
 
 ## 🎯 **Quick Start Deployment**
 
+### Azure Setup Requirements
+
+Before deploying, ensure proper Azure configuration. See [Azure Resource Providers and Setup](#azure-resource-providers-and-setup) for complete instructions.
+
+**Quick Provider Check:**
+```bash
+# Use the included script to check all required providers
+./scripts/check_azure_providers.sh
+```
+
 ### Recommended Approach
 
 For most users, start with the **Azure ML Managed Endpoint** for production or **Local Inference Server** for development:
@@ -487,7 +497,175 @@ This archival system ensures **deployment reliability**, **operational visibilit
 
 ---
 
-## 📚 **Related Documentation**
+## � **Azure Resource Providers and Setup**
+
+### Prerequisites for Azure ML Deployment
+
+Azure Machine Learning requires specific resource providers and a properly configured workspace with Container Registry integration.
+
+### Required Resource Providers
+
+**Quick Check (Recommended):**
+```bash
+# Use the included script to check all providers at once
+./scripts/check_azure_providers.sh
+
+# Or auto-register missing core providers
+./scripts/check_azure_providers.sh --register
+```
+
+**Core Azure ML Services:**
+```bash
+# Essential providers for Azure ML
+az provider register --namespace Microsoft.MachineLearningServices
+az provider register --namespace Microsoft.ContainerRegistry
+az provider register --namespace Microsoft.Storage
+az provider register --namespace Microsoft.KeyVault
+az provider register --namespace Microsoft.Insights
+
+# Verify registration status (may take 5-10 minutes)
+az provider list --query "[?namespace=='Microsoft.MachineLearningServices'].{Namespace:namespace, State:registrationState}" -o table
+az provider list --query "[?namespace=='Microsoft.ContainerRegistry'].{Namespace:namespace, State:registrationState}" -o table
+```
+
+**Additional Providers (May be required based on deployment type):**
+```bash
+# For managed endpoints and advanced features
+az provider register --namespace Microsoft.ContainerInstance
+az provider register --namespace Microsoft.Web
+az provider register --namespace Microsoft.Network
+az provider register --namespace Microsoft.Compute
+
+# Additional providers discovered during deployment troubleshooting
+az provider register --namespace Microsoft.Cdn
+az provider register --namespace Microsoft.ServiceBus
+
+# Check all provider status at once
+az provider list --query "[?registrationState=='NotRegistered'].{Namespace:namespace, State:registrationState}" -o table
+```
+
+### Azure Resource Creation
+
+#### Step 1: Resource Group
+```bash
+# Create resource group
+RESOURCE_GROUP="rg-purchase-predictor"
+LOCATION="eastus"
+
+az group create --name $RESOURCE_GROUP --location $LOCATION
+```
+
+#### Step 2: Container Registry (Required for Azure ML)
+```bash
+# Container registry is REQUIRED for Azure ML workspaces
+REGISTRY_NAME="acrpurchasepredictor"  # Must be globally unique, lowercase alphanumeric only
+
+az acr create \
+  --resource-group $RESOURCE_GROUP \
+  --name $REGISTRY_NAME \
+  --sku Basic \
+  --admin-enabled true
+
+# Verify container registry
+az acr show --name $REGISTRY_NAME --resource-group $RESOURCE_GROUP --query loginServer
+```
+
+#### Step 3: Azure ML Workspace (with Container Registry)
+```bash
+# Create workspace with container registry integration
+WORKSPACE_NAME="ws-purchase-predictor"
+
+az ml workspace create \
+  --name $WORKSPACE_NAME \
+  --resource-group $RESOURCE_GROUP \
+  --container-registry $REGISTRY_NAME \
+  --location $LOCATION
+
+# Verify workspace creation
+az ml workspace show --name $WORKSPACE_NAME --resource-group $RESOURCE_GROUP
+```
+
+### Alternative: Create Workspace with Default Settings
+
+If you prefer Azure to create dependencies automatically:
+
+```bash
+# This creates workspace with auto-generated storage, key vault, and app insights
+az ml workspace create \
+  --name $WORKSPACE_NAME \
+  --resource-group $RESOURCE_GROUP \
+  --location $LOCATION
+
+# Note: You'll still need to add container registry manually
+az ml workspace update \
+  --name $WORKSPACE_NAME \
+  --resource-group $RESOURCE_GROUP \
+  --container-registry $REGISTRY_NAME
+```
+
+### Verification and Environment Setup
+
+#### Verify All Resources
+```bash
+# Check resource group contents
+az resource list --resource-group $RESOURCE_GROUP --output table
+
+# Verify ML workspace details
+az ml workspace show --name $WORKSPACE_NAME --resource-group $RESOURCE_GROUP \
+  --query "{Name:name, Location:location, ContainerRegistry:container_registry}" \
+  --output table
+
+# Test ML workspace connectivity
+az ml compute list --workspace-name $WORKSPACE_NAME --resource-group $RESOURCE_GROUP
+```
+
+#### Get Environment Variables for .env.local
+```bash
+# Get subscription ID
+echo "AZURE_SUBSCRIPTION_ID=$(az account show --query id --output tsv)"
+
+# Use the resource group and workspace names
+echo "AZURE_RESOURCE_GROUP=$RESOURCE_GROUP"
+echo "AZURE_WORKSPACE_NAME=$WORKSPACE_NAME"
+echo "AZURE_LOCATION=$LOCATION"
+```
+
+### Common Issues and Solutions
+
+**Resource Provider Registration Timeout:**
+```bash
+# Check registration progress
+az provider show --namespace Microsoft.MachineLearningServices --query registrationState
+
+# Force re-registration if stuck
+az provider unregister --namespace Microsoft.MachineLearningServices
+az provider register --namespace Microsoft.MachineLearningServices
+```
+
+**Container Registry Name Conflicts:**
+```bash
+# Registry names must be globally unique
+# Try variations like: acrpurchasepredictor01, acrpurchasepredictor02, acrpredictorYOURNAME
+az acr check-name --name "your-unique-name"
+```
+
+**Permission Issues:**
+```bash
+# Ensure you have Contributor role on subscription
+az role assignment list --assignee $(az account show --query user.name --output tsv) \
+  --query "[?roleDefinitionName=='Contributor']" --output table
+```
+
+### Next Steps After Setup
+
+1. **Update Project Configuration**: Add your Azure details to `.env.local`
+2. **Test Connectivity**: Run `az ml workspace show --name $WORKSPACE_NAME --resource-group $RESOURCE_GROUP`
+3. **Deploy Model**: Use `bash scripts/run_pipeline.sh`
+4. **Monitor Resources**: Check Azure ML Studio for deployment status
+
+---
+
+## �📚 **Related Documentation**
 
 For comprehensive information about the Purchase Predictor system:
 
