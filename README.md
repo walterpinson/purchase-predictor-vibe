@@ -265,6 +265,12 @@ az account show
 
 This project requires specific Azure resources, resource providers, and proper workspace configuration.
 
+**Quick Provider Check:**
+```bash
+# Use the included script to verify all requirements
+./scripts/check_azure_providers.sh
+```
+
 **Quick Setup Commands:**
 ```bash
 # Get your subscription info (needed for .env.local)

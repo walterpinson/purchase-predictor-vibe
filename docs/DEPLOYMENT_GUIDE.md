@@ -19,6 +19,12 @@ The Purchase Predictor supports multiple deployment strategies to accommodate di
 
 Before deploying, ensure proper Azure configuration. See [Azure Resource Providers and Setup](#azure-resource-providers-and-setup) for complete instructions.
 
+**Quick Provider Check:**
+```bash
+# Use the included script to check all required providers
+./scripts/check_azure_providers.sh
+```
+
 ### Recommended Approach
 
 For most users, start with the **Azure ML Managed Endpoint** for production or **Local Inference Server** for development:
@@ -498,6 +504,15 @@ This archival system ensures **deployment reliability**, **operational visibilit
 Azure Machine Learning requires specific resource providers and a properly configured workspace with Container Registry integration.
 
 ### Required Resource Providers
+
+**Quick Check (Recommended):**
+```bash
+# Use the included script to check all providers at once
+./scripts/check_azure_providers.sh
+
+# Or auto-register missing core providers
+./scripts/check_azure_providers.sh --register
+```
 
 **Core Azure ML Services:**
 ```bash
