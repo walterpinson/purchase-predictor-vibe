@@ -133,7 +133,7 @@ purchase-predictor-vibe/
 
 ## Data Schema
 
-The model predicts user purchase preference based on these features:
+The model predicts user purchase behavior based on these features:
 
 | Column | Type | Description | Example Values | Processing |
 |--------|------|-------------|----------------|------------|
@@ -141,7 +141,7 @@ The model predicts user purchase preference based on these features:
 | `user_rating` | float64 | User rating (1-5) | 4.0, 2.0, 5.0, 3.0 | Convert to float64 |
 | `category` | string → float64 | Product category | electronics, books, clothes | Label encoded to float64 |
 | `previously_purchased` | string → float64 | Previous purchase history | yes, no | Binary encoded to 1.0, 0.0 |
-| `label` | integer | Target: 1=liked, 0=not liked | 1, 0 | Target variable |
+| `label` | integer | Target: 1=purchased, 0=not purchased | 1, 0 | Target variable |
 
 **Note**: All features are converted to float64 for MLFlow compatibility and robust missing value handling.
 
@@ -570,7 +570,7 @@ Common error causes:
 
 - **Algorithm**: Random Forest Classifier (default) or Logistic Regression
 - **Features**: 4 input features (price, rating, category, purchase history)
-- **Output**: Binary classification (0=not liked, 1=liked) with probabilities
+- **Output**: Binary classification (0=not purchased, 1=purchased) with probabilities
 - **Performance**: Accuracy typically 70-85% on synthetic data
 - **Scalability**: Deployed on managed Azure ML infrastructure
 
