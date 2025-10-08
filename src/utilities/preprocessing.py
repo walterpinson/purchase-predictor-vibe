@@ -192,20 +192,46 @@ class PurchaseDataPreprocessor:
         """
         instance = cls()
         
-        encoder_path = 'models/label_encoder.pkl'
-        metadata_path = 'models/preprocessing_metadata.pkl'
+        # Try multiple possible paths for the encoders
+        possible_model_paths = [
+            'models',  # Local path
+            '../models',  # Parent directory (for server/ subdirectory)
+            os.environ.get('AZUREML_MODEL_DIR', ''),  # Azure ML deployment path
+            '.',  # Current directory
+            '/var/azureml-app',  # Common Azure ML path
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), 'models')  # Project root models
+        ]
         
-        if os.path.exists(encoder_path):
-            instance.le_category = joblib.load(encoder_path)
-            logger.info(f"Category encoder loaded from {encoder_path}")
+        encoder_loaded = False
+        
+        for base_path in possible_model_paths:
+            if not base_path:
+                continue
+                
+            encoder_path = os.path.join(base_path, 'label_encoder.pkl')
+            metadata_path = os.path.join(base_path, 'preprocessing_metadata.pkl')
             
-            if os.path.exists(metadata_path):
-                metadata = joblib.load(metadata_path)
-                instance.feature_columns = metadata['feature_columns']
-                instance.target_column = metadata['target_column']
-                logger.info("Preprocessing metadata loaded")
-        else:
-            logger.warning("No saved encoders found. Preprocessor needs to be fitted first.")
+            logger.info(f"Trying to load encoder from: {encoder_path}")
+            
+            if os.path.exists(encoder_path):
+                try:
+                    instance.le_category = joblib.load(encoder_path)
+                    logger.info(f"Category encoder loaded from {encoder_path}")
+                    encoder_loaded = True
+                    
+                    if os.path.exists(metadata_path):
+                        metadata = joblib.load(metadata_path)
+                        instance.feature_columns = metadata['feature_columns']
+                        instance.target_column = metadata['target_column']
+                        logger.info("Preprocessing metadata loaded")
+                    
+                    break
+                except Exception as e:
+                    logger.warning(f"Failed to load encoder from {encoder_path}: {str(e)}")
+                    continue
+        
+        if not encoder_loaded:
+            logger.warning("No saved encoders found in any path. Preprocessor needs to be fitted first.")
         
         return instance
 

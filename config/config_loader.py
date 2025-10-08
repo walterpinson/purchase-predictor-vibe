@@ -55,6 +55,7 @@ def load_config(config_file=None, env_file=None):
 def _manual_env_substitution(obj):
     """
     Manually substitute environment variables in configuration if piny failed.
+    Supports both ${VARIABLE_NAME} and ${VARIABLE_NAME:default_value} syntax.
     
     Args:
         obj: Configuration object (dict, list, or string)
@@ -69,10 +70,17 @@ def _manual_env_substitution(obj):
     elif isinstance(obj, list):
         return [_manual_env_substitution(item) for item in obj]
     elif isinstance(obj, str):
-        # Look for ${VARIABLE_NAME} patterns
+        # Look for ${VARIABLE_NAME:default_value} or ${VARIABLE_NAME} patterns
         def replace_env_var(match):
-            var_name = match.group(1)
-            return os.environ.get(var_name, match.group(0))  # Return original if not found
+            full_match = match.group(1)
+            if ':' in full_match:
+                # Handle ${VARIABLE_NAME:default_value} syntax
+                var_name, default_value = full_match.split(':', 1)
+                return os.environ.get(var_name, default_value)
+            else:
+                # Handle ${VARIABLE_NAME} syntax
+                var_name = full_match
+                return os.environ.get(var_name, match.group(0))  # Return original if not found
         
         return re.sub(r'\$\{([^}]+)\}', replace_env_var, obj)
     else:
