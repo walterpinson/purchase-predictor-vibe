@@ -74,16 +74,21 @@ All scripts (`src/pipeline/data_prep.py`, `src/pipeline/train.py`, `src/scripts/
 ```bash
 purchase-predictor-vibe/
 ├── README.md                    # This file
-├── requirements.txt             # Python dependencies
 ├── conda.yaml                   # Environment definition
 ├── .env.local                   # Environment variables (not in git)
 ├── .gitignore                   # Git ignore file
+├── docs/                        # Documentation
+│   ├── DEPLOYMENT_GUIDE.md      # Deployment strategies and troubleshooting
+│   ├── REGIONAL_DEPLOYMENT_GUIDE.md  # Regional deployment configurations
+│   └── UNIQUE_NAMING_IMPLEMENTATION.md  # Endpoint naming strategies
 ├── scripts/                     # Project management scripts
 │   ├── run_pipeline.sh          # Complete pipeline execution script
 │   ├── run_pipeline_aci.sh      # ACI-style deployment pipeline
 │   ├── run_pipeline_local.sh    # Local development pipeline
 │   ├── cleanup_endpoint.sh      # Endpoint cleanup utility
-│   └── fix_environment.sh       # Environment setup utility
+│   ├── fix_environment.sh       # Environment setup utility
+│   ├── check_azure_quotas.sh    # Azure quota monitoring script
+│   └── quota_monitor.py         # Python quota monitoring utility
 ├── config/                      # Configuration and utilities
 │   ├── config.yaml              # Configuration settings
 │   ├── config_loader.py         # Shared configuration loader utility (uses piny)
@@ -162,14 +167,14 @@ The model predicts user purchase preference based on these features:
 
    ```bash
    conda env create -f conda.yaml
-   conda activate purchase-predictor
+   conda activate purchase-predictor-env
    ```
 
 3. Verify installation:
 
    ```bash
    python --version
-   pip list
+   conda list
    ```
 
 4. Configure Azure credentials:
@@ -446,7 +451,7 @@ curl -X POST "https://your-endpoint-uri.azure.com/score" \
 ### Common Issues
 
 1. **Import Errors**
-   - Solution: Install requirements with `pip install -r requirements.txt`
+   - Solution: Recreate conda environment with `./scripts/fix_environment.sh`
 
 2. **Azure Authentication Failed**
    - Solution: Run `az login` and verify subscription access
