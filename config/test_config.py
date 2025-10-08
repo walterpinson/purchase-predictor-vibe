@@ -4,7 +4,7 @@ Test script to verify configuration loading with piny.
 Run this to test that your .env.local file and config.yaml are set up correctly.
 """
 
-from config.config_loader import load_config, validate_azure_config
+from config_loader import load_config, validate_azure_config
 
 
 def main():

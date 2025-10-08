@@ -4,7 +4,7 @@ Test script to verify Azure ML SDK regional deployment behavior.
 """
 
 import json
-from config.config_loader import load_config
+from config_loader import load_config  # Fixed import - now in same directory
 from azure.ai.ml.entities import ManagedOnlineEndpoint
 
 def test_endpoint_config():

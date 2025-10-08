@@ -74,16 +74,21 @@ All scripts (`src/pipeline/data_prep.py`, `src/pipeline/train.py`, `src/scripts/
 ```bash
 purchase-predictor-vibe/
 ├── README.md                    # This file
-├── requirements.txt             # Python dependencies
 ├── conda.yaml                   # Environment definition
 ├── .env.local                   # Environment variables (not in git)
 ├── .gitignore                   # Git ignore file
+├── docs/                        # Documentation
+│   ├── DEPLOYMENT_GUIDE.md      # Deployment strategies and troubleshooting
+│   ├── REGIONAL_DEPLOYMENT_GUIDE.md  # Regional deployment configurations
+│   └── UNIQUE_NAMING_IMPLEMENTATION.md  # Endpoint naming strategies
 ├── scripts/                     # Project management scripts
 │   ├── run_pipeline.sh          # Complete pipeline execution script
 │   ├── run_pipeline_aci.sh      # ACI-style deployment pipeline
 │   ├── run_pipeline_local.sh    # Local development pipeline
 │   ├── cleanup_endpoint.sh      # Endpoint cleanup utility
-│   └── fix_environment.sh       # Environment setup utility
+│   ├── fix_environment.sh       # Environment setup utility
+│   ├── check_azure_quotas.sh    # Azure quota monitoring script
+│   └── quota_monitor.py         # Python quota monitoring utility
 ├── config/                      # Configuration and utilities
 │   ├── config.yaml              # Configuration settings
 │   ├── config_loader.py         # Shared configuration loader utility (uses piny)
@@ -162,14 +167,14 @@ The model predicts user purchase preference based on these features:
 
    ```bash
    conda env create -f conda.yaml
-   conda activate purchase-predictor
+   conda activate purchase-predictor-env
    ```
 
 3. Verify installation:
 
    ```bash
    python --version
-   pip list
+   conda list
    ```
 
 4. Configure Azure credentials:
@@ -433,6 +438,134 @@ curl -X POST "https://your-endpoint-uri.azure.com/score" \
      -d '{"data": [[25.99, 4, 1, 1], [150.00, 2, 0, 0]]}'
 ```
 
+## API Response Format
+
+### Understanding the Response
+
+When you make a prediction request, the API returns a JSON response with predictions and probability scores. Here's how to interpret it:
+
+#### Example Request
+
+```json
+{
+  "data": [
+    [25.99, 4, 1, 1],  
+    [150.00, 2, 0, 0]  
+  ]
+}
+```
+
+#### Example Response
+
+```json
+{
+  "predictions": [1, 1],
+  "probabilities": [
+    [0.024229079008882656, 0.9757709209911173],
+    [0.48167746065348316, 0.5183225393465167]
+  ]
+}
+```
+
+### Response Fields Explained
+
+#### **`predictions`** (array of integers)
+
+- **Values**: `0` or `1` for each input sample
+- **Meaning**:
+  - `0` = **Not Liked** (user will not like this product)
+  - `1` = **Liked** (user will like this product)
+- **Example**: `[1, 1]` means both products are predicted to be liked
+
+#### **`probabilities`** (array of arrays)
+
+- **Format**: Each inner array contains `[probability_not_liked, probability_liked]`
+- **Values**: Decimal numbers between 0.0 and 1.0 that sum to 1.0
+- **Meaning**:
+  - **First number**: Probability the user will **NOT like** the product (class 0)
+  - **Second number**: Probability the user **WILL like** the product (class 1)
+
+### Detailed Example Interpretation
+
+For the response above:
+
+**Sample 1: `[25.99, 4, 1, 1]` (Low price, high rating, electronics, previous customer)**
+
+- **Prediction**: `1` (Liked)
+- **Probabilities**: `[0.024, 0.976]`
+- **Interpretation**:
+  - 2.4% chance user will NOT like it
+  - **97.6% chance user WILL like it** ✅
+  - **High confidence** prediction (very likely to be liked)
+
+**Sample 2: `[150.00, 2, 0, 0]` (High price, low rating, books, new customer)**
+
+- **Prediction**: `1` (Liked)
+- **Probabilities**: `[0.482, 0.518]`
+- **Interpretation**:
+  - 48.2% chance user will NOT like it
+  - **51.8% chance user WILL like it** ✅
+  - **Low confidence** prediction (borderline case, close to 50/50)
+
+### Confidence Levels
+
+Use the probability values to assess prediction confidence:
+
+| Probability Range | Confidence Level | Action Recommendation |
+|-------------------|------------------|----------------------|
+| 0.9 - 1.0 | **Very High** | Strong recommendation |
+| 0.7 - 0.9 | **High** | Good recommendation |
+| 0.6 - 0.7 | **Medium** | Moderate recommendation |
+| 0.5 - 0.6 | **Low** | Weak recommendation, consider alternatives |
+| 0.0 - 0.5 | **Not Recommended** | User likely won't like this product |
+
+### Using Probabilities in Your Application
+
+```python
+# Example: Processing the response
+response = {
+    "predictions": [1, 1],
+    "probabilities": [
+        [0.024229079008882656, 0.9757709209911173],
+        [0.48167746065348316, 0.5183225393465167]
+    ]
+}
+
+for i, (prediction, probs) in enumerate(zip(response["predictions"], response["probabilities"])):
+    prob_not_liked, prob_liked = probs
+    
+    print(f"Product {i+1}:")
+    print(f"  Prediction: {'Liked' if prediction == 1 else 'Not Liked'}")
+    print(f"  Confidence: {max(probs):.1%}")
+    
+    if prob_liked > 0.8:
+        print(f"  Recommendation: Strong buy recommendation!")
+    elif prob_liked > 0.6:
+        print(f"  Recommendation: Good choice")
+    elif prob_liked > 0.5:
+        print(f"  Recommendation: Might like it")
+    else:
+        print(f"  Recommendation: Probably won't like it")
+```
+
+### Error Responses
+
+If something goes wrong, you'll receive an error response:
+
+```json
+{
+  "error": "Error message description",
+  "message": "Prediction failed"
+}
+```
+
+Common error causes:
+
+- Invalid input format (wrong number of features)
+- Missing required fields in request
+- Model loading issues
+- Server errors
+
 ## Model Features
 
 - **Algorithm**: Random Forest Classifier (default) or Logistic Regression
@@ -446,7 +579,7 @@ curl -X POST "https://your-endpoint-uri.azure.com/score" \
 ### Common Issues
 
 1. **Import Errors**
-   - Solution: Install requirements with `pip install -r requirements.txt`
+   - Solution: Recreate conda environment with `./scripts/fix_environment.sh`
 
 2. **Azure Authentication Failed**
    - Solution: Run `az login` and verify subscription access
