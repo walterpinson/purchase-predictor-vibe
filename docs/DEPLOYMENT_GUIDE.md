@@ -1,8 +1,36 @@
 # Purchase Predictor Deployment Guide
 
-This project provides three different deployment approaches for your purchase predictor model. Choose the one that best fits your needs and subscription capabilities.
+This comprehensive guide covers all deployment approaches for the Purchase Predictor model, from local development to production Azure ML endpoints. Choose the deployment strategy that best fits your needs, subscription capabilities, and operational requirements.
 
-## 🚀 **Deployment Options**
+## 🚀 **Deployment Options Overview**
+
+The Purchase Predictor supports multiple deployment strategies to accommodate different use cases:
+
+| Deployment Type | Best For | Features | Requirements |
+|-----------------|----------|----------|-------------|
+| **Azure ML Managed Endpoint** | Production workloads | Auto-scaling, monitoring, enterprise security | Azure subscription, resource providers |
+| **Azure ML + Local Inference** | Development, testing | Azure ML integration + local flexibility | Azure subscription (basic) |
+| **Azure Container Instance** | Containerized deployment | Simple container deployment | Azure subscription |
+| **Local Development Server** | Development, demos | No Azure requirements | Local Python environment |
+
+## 🎯 **Quick Start Deployment**
+
+### Recommended Approach
+
+For most users, start with the **Azure ML Managed Endpoint** for production or **Local Inference Server** for development:
+
+**Production (Azure ML Hosted):**
+```bash
+./scripts/run_pipeline.sh
+```
+
+**Development/Testing:**
+```bash
+./scripts/run_pipeline_local.sh
+python src/utilities/local_inference.py
+```
+
+## 🚀 **Detailed Deployment Options**
 
 ### 1. **Azure ML Studio Managed Endpoint** (`run_pipeline.sh`)
 **Best for:** Production Azure ML Studio hosted inference server (REQUIRED)
@@ -74,7 +102,52 @@ curl http://localhost:5000/test
 
 ---
 
-## 🎯 **Recommendations**
+### 4. **Local Development Server** (No Azure Required)
+**Best for:** Development, testing, demos, cost-effective inference
+
+```bash
+# Run complete pipeline locally (no Azure deployment)
+python src/utilities/data_prep.py
+python src/pipeline/train.py
+
+# Start local inference server
+python src/utilities/local_inference.py
+```
+
+**Features:**
+- ✅ No Azure subscription required
+- ✅ Immediate setup and testing
+- ✅ Full REST API compatibility
+- ✅ Interactive debugging capabilities
+- ✅ Cost-effective for development
+- ✅ Ideal for demos and prototyping
+
+**Local Server Endpoints:**
+- `GET /health` - Health check and status
+- `POST /predict` - Make predictions
+- `GET /info` - Model and API information
+- `GET /test` - Test with sample data
+
+**Example Usage:**
+```bash
+# Start the local server
+python src/utilities/local_inference.py
+
+# Test with curl (in another terminal)
+curl -X POST http://localhost:5000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"data": [[25.99, 4, 0, 1], [150.00, 2, 1, 0]]}'
+
+# View model info
+curl http://localhost:5000/info
+
+# Quick test with sample data
+curl http://localhost:5000/test
+```
+
+---
+
+## 🎯 **Deployment Recommendations**
 
 ### **For Production (Azure ML Studio Hosted - REQUIRED):**
 
@@ -173,6 +246,137 @@ If you continue to see resource provider issues:
 4. **Monitor and iterate** through Azure ML Studio
 
 All approaches provide production-ready deployment with full Azure ML integration! 🎉
+
+---
+
+## 📡 **API Usage and Integration**
+
+### Making Predictions
+
+Once deployed, all endpoints provide the same REST API interface:
+
+#### Using Python
+
+```python
+import requests
+import json
+
+# Azure ML Endpoint (from models/endpoint_info.yaml)
+endpoint_uri = "https://your-endpoint-uri.azure.com/score"
+# OR Local Endpoint
+# endpoint_uri = "http://localhost:5000/predict"
+
+headers = {"Content-Type": "application/json"}
+
+# Prepare data (both raw and preprocessed formats supported)
+data = {
+    "data": [
+        [25.99, 4, "electronics", "yes"],  # Raw format (recommended)
+        [150.00, 2, "books", "no"]
+    ]
+}
+
+# Make request
+try:
+    response = requests.post(endpoint_uri, json=data, headers=headers)
+    response.raise_for_status()
+    predictions = response.json()
+    print(json.dumps(predictions, indent=2))
+except requests.exceptions.RequestException as e:
+    print(f"API request failed: {e}")
+```
+
+#### Using curl
+
+```bash
+# Azure ML Endpoint
+curl -X POST "https://your-endpoint-uri.azure.com/score" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "data": [
+         [25.99, 4, "electronics", "yes"],
+         [150.00, 2, "books", "no"]
+       ]
+     }'
+
+# Local Endpoint
+curl -X POST http://localhost:5000/predict \
+     -H "Content-Type: application/json" \
+     -d '{"data": [[25.99, 4, "electronics", "yes"]]}'
+```
+
+### Understanding API Responses
+
+The API returns predictions with confidence scores:
+
+```json
+{
+  "predictions": [1, 1],
+  "probabilities": [
+    [0.024, 0.976],
+    [0.482, 0.518]
+  ]
+}
+```
+
+**Response Fields:**
+- **`predictions`**: Binary predictions (0=not purchased, 1=purchased)
+- **`probabilities`**: Confidence scores `[prob_not_purchased, prob_purchased]`
+
+For detailed API documentation, see [API_REFERENCE.md](API_REFERENCE.md).
+
+---
+
+## ⚙️ **Advanced Deployment Configuration**
+
+### Deployment Settings
+
+Configure deployment behavior in `config.yaml`:
+
+```yaml
+# Deployment Configuration
+deployment:
+  endpoint_name: "purchase-predictor-endpoint"
+  deployment_name: "purchase-predictor-deployment"
+  instance_type: "Standard_DS2_v2"        # VM size
+  instance_count: 1                       # Number of instances
+  traffic_percentage: 100                 # Traffic allocation
+  
+# Model Settings
+model:
+  type: "random_forest"                   # Model algorithm
+  random_state: 42                       # Reproducibility
+  
+# Data Processing Settings
+data_processing:
+  handle_missing: "drop"                  # Missing value strategy
+  use_float_types: true                   # MLFlow compatibility
+  drop_threshold: 0.1                    # Feature selection threshold
+```
+
+### Environment Configuration
+
+Set up Azure credentials in `.env.local`:
+
+```bash
+# Required for Azure deployments
+AZURE_SUBSCRIPTION_ID=your-subscription-id
+AZURE_RESOURCE_GROUP=your-resource-group
+AZURE_WORKSPACE_NAME=your-workspace-name
+AZURE_LOCATION=eastus
+
+# Optional for enhanced functionality
+MLFLOW_TRACKING_URI=file:./mlruns
+```
+
+### Instance Type Recommendations
+
+| Workload Type | Instance Type | vCPUs | Memory | Cost | Best For |
+|---------------|---------------|-------|--------|------|----------|
+| **Development** | Standard_DS1_v2 | 1 | 3.5 GB | $ | Testing, low traffic |
+| **Production** | Standard_DS2_v2 | 2 | 7 GB | $$ | Balanced performance |
+| **High Traffic** | Standard_DS3_v2 | 4 | 14 GB | $$$ | High throughput |
+| **Compute Intensive** | Standard_F2s_v2 | 2 | 4 GB | $$ | Fast inference |
 
 ---
 
@@ -280,3 +484,35 @@ When deployments fail or behave unexpectedly:
 5. **Rollback if needed**: Copy files from working archive back to `/server`
 
 This archival system ensures **deployment reliability**, **operational visibility**, and **easy troubleshooting** across all deployment approaches!
+
+---
+
+## 📚 **Related Documentation**
+
+For comprehensive information about the Purchase Predictor system:
+
+- **[README.md](../README.md)** - Quick start guide and project overview
+- **[CONFIGURATION.md](CONFIGURATION.md)** - Complete configuration reference
+- **[API_REFERENCE.md](API_REFERENCE.md)** - Detailed API documentation and integration examples
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Common issues and debugging guide
+- **[DATA_SCHEMA.md](DATA_SCHEMA.md)** - Data formats and model specifications
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Technical architecture and system design
+
+### Quick Reference Links
+
+- **Configuration Settings**: [CONFIGURATION.md#deployment-settings](CONFIGURATION.md#deployment-settings)
+- **API Integration**: [API_REFERENCE.md#integration-examples](API_REFERENCE.md#integration-examples)
+- **Common Issues**: [TROUBLESHOOTING.md#deployment-issues](TROUBLESHOOTING.md#deployment-issues)
+- **Data Formats**: [DATA_SCHEMA.md#api-input-format](DATA_SCHEMA.md#api-input-format)
+
+### Support and Troubleshooting
+
+If you encounter deployment issues:
+
+1. **Check the troubleshooting guide**: [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+2. **Verify configuration**: [CONFIGURATION.md](CONFIGURATION.md)
+3. **Test API locally**: Use local inference server first
+4. **Review Azure logs**: Check Azure ML Studio for deployment logs
+5. **Check archival system**: Use server management utilities for debugging
+
+For additional support, consult the project's documentation suite or open an issue in the repository.
