@@ -534,7 +534,7 @@ az provider list --query "[?registrationState=='NotRegistered'].{Namespace:names
 #### Step 1: Resource Group
 ```bash
 # Create resource group
-RESOURCE_GROUP="rg-ml-dojo-00"
+RESOURCE_GROUP="rg-purchase-predictor"
 LOCATION="eastus"
 
 az group create --name $RESOURCE_GROUP --location $LOCATION
@@ -543,7 +543,7 @@ az group create --name $RESOURCE_GROUP --location $LOCATION
 #### Step 2: Container Registry (Required for Azure ML)
 ```bash
 # Container registry is REQUIRED for Azure ML workspaces
-REGISTRY_NAME="acrmldojo00"  # Must be globally unique, lowercase alphanumeric only
+REGISTRY_NAME="acrpurchasepredictor"  # Must be globally unique, lowercase alphanumeric only
 
 az acr create \
   --resource-group $RESOURCE_GROUP \
@@ -558,7 +558,7 @@ az acr show --name $REGISTRY_NAME --resource-group $RESOURCE_GROUP --query login
 #### Step 3: Azure ML Workspace (with Container Registry)
 ```bash
 # Create workspace with container registry integration
-WORKSPACE_NAME="ws-ml-dojo-00"
+WORKSPACE_NAME="ws-purchase-predictor"
 
 az ml workspace create \
   --name $WORKSPACE_NAME \
@@ -630,7 +630,7 @@ az provider register --namespace Microsoft.MachineLearningServices
 **Container Registry Name Conflicts:**
 ```bash
 # Registry names must be globally unique
-# Try variations like: acrmldojo01, acrmldojo02, acrmldemoyourname
+# Try variations like: acrpurchasepredictor01, acrpurchasepredictor02, acrpredictorYOURNAME
 az acr check-name --name "your-unique-name"
 ```
 
