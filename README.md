@@ -37,7 +37,7 @@ cp .env.local.example .env.local
 
 ```bash
 # Run end-to-end ML pipeline (recommended)
-bash scripts/run_pipeline.sh
+./scripts/run_pipeline.sh
 ```
 
 **This single command will:**
@@ -79,7 +79,7 @@ If you prefer to test locally without Azure deployment:
 
 ```bash
 # Run local inference server instead
-bash scripts/run_pipeline_local.sh
+./scripts/run_pipeline_local.sh
 
 # Test local server
 curl http://localhost:5000/test
@@ -160,7 +160,7 @@ purchase-predictor-vibe/
 
 ```bash
 # Local development without Azure deployment
-bash scripts/run_pipeline_local.sh
+./scripts/run_pipeline_local.sh
 python src/utilities/local_inference.py
 
 # Test locally
@@ -171,7 +171,7 @@ curl http://localhost:5000/test
 
 ```bash
 # Deploy using Azure Container Instance
-bash scripts/run_pipeline_aci.sh
+./scripts/run_pipeline_aci.sh
 ```
 
 ### Step-by-Step Execution

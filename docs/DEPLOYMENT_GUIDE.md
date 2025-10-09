@@ -660,7 +660,7 @@ az role assignment list --assignee $(az account show --query user.name --output 
 
 1. **Update Project Configuration**: Add your Azure details to `.env.local`
 2. **Test Connectivity**: Run `az ml workspace show --name $WORKSPACE_NAME --resource-group $RESOURCE_GROUP`
-3. **Deploy Model**: Use `bash scripts/run_pipeline.sh`
+3. **Deploy Model**: Use `./scripts/run_pipeline.sh`
 4. **Monitor Resources**: Check Azure ML Studio for deployment status
 
 ---
