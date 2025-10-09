@@ -88,8 +88,6 @@ def init():
             # Create a basic preprocessor instance for fallback
             preprocessor = None
             logger.info("Will use fallback preprocessing for all requests")
-        preprocessor = PurchaseDataPreprocessor.load_fitted_preprocessor()
-        logger.info("Preprocessor loaded successfully")
             
     except Exception as e:
         logger.error(f"Error loading model: {str(e)}")
