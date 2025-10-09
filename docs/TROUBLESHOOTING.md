@@ -698,7 +698,7 @@ def main():
     if all_passed:
         print("🎉 All checks passed! Environment is ready.")
         print("\nNext steps:")
-        print("1. Run: bash scripts/run_pipeline.sh")
+        print("1. Run: ./scripts/run_pipeline.sh")
         print("2. Or run: python src/pipeline/main_pipeline.py")
     else:
         print("❌ Some checks failed. Please fix the issues above.")
