@@ -55,10 +55,17 @@ After deployment, test your model:
 # Get endpoint information
 cat models/endpoint_info.yaml
 
-# Test with curl (preprocessed format)
+# Test with curl (requires authentication)
 curl -X POST "https://your-endpoint-uri.azure.com/score" \
      -H "Content-Type: application/json" \
+     -H "Authorization: Bearer $(az ml online-endpoint get-credentials --name purchase-predictor-endpoint --query accessToken -o tsv)" \
      -d '{"data": [[25.99, 4, 0, 1]]}'
+
+# Alternative: Use endpoint key authentication (if key-based auth is enabled)
+# curl -X POST "https://your-endpoint-uri.azure.com/score" \
+#      -H "Content-Type: application/json" \
+#      -H "Authorization: Bearer YOUR_ENDPOINT_KEY" \
+#      -d '{"data": [[25.99, 4, 0, 1]]}'
 
 # Note: Raw format like ["electronics", "yes"] requires the latest scoring script
 # For raw input, redeploy with: python src/pipeline/deploy_managed_endpoint.py
